@@ -13,7 +13,8 @@
     "uplambda": "index.js"
   },
   "dependencies": {
-    "npm-install-missing": "0.1.4",
-    "adddep": "1.0.1"
+    "adddep": "1.0.1",
+    "ncp": "^2.0.0",
+    "npm-install-missing": "0.1.4"
   }
 }

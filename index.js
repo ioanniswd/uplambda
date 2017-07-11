@@ -6,8 +6,7 @@ var path = require('path');
 var fs = require('fs');
 var homedir = require('os').homedir() + '/';
 var zlib = require('zlib');
-
-
+var ncp = require('ncp').ncp;
 
 console.log('runs');
 
@@ -51,7 +50,7 @@ if (invokeFolder.indexOf('lambdafns') == -1) {
         process.chdir(localPath);
       }
 
-      fs.readdir(process.cwd(), function(err, files) {
+      ncp(invokeFolder, process.cwd(), function(err, files) {
         console.log('files: ', files);
 
         fs.createReadStream(invokeFolder + '/index.js').pipe(fs.createWriteStream('index.js'));
