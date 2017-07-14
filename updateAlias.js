@@ -7,13 +7,14 @@ module.exports = function(functionName, name, version, callback) {
 
   exec(`aws lambda update-alias --function-name ${functionName} --name ${name}`, function(err, stdout, stderr) {
     if (err) {
-      callback(err);
-    } else if (stderr) {
-      if (stderr == 'ResourceNotFoundException') {
+      // if ResourceNotFoundException
+      if (err.code == 255) {
         createAlias(functionName, name, version, callback);
       } else {
-        callback(stderr);
+        callback(err);
       }
+    } else if (stderr) {
+      callback(stderr);
     } else {
       let res = JSON.parse(stdout);
       callback(null, parseInt(res.FunctionVersion), res.Name);
