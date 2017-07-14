@@ -5,7 +5,8 @@ const createAlias = require('./createAlias');
 
 module.exports = function(functionName, name, version, callback) {
 
-  exec(`aws lambda update-alias --function-name ${functionName} --name ${name}`, function(err, stdout, stderr) {
+  exec(`aws lambda update-alias --function-name ${functionName} --name ${name} \
+    --function-version ${version}`, function(err, stdout, stderr) {
     if (err) {
       // if ResourceNotFoundException
       if (err.code == 255) {
