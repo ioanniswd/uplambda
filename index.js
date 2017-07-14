@@ -52,10 +52,7 @@ if (invokeFolder.indexOf('lambdafns') == -1) {
 
       ncp(invokeFolder, process.cwd(), function(err, files) {
         console.log('files: ', files);
-
-        fs.createReadStream(invokeFolder + '/index.js').pipe(fs.createWriteStream('index.js'));
-        fs.createReadStream(invokeFolder + '/package.json').pipe(fs.createWriteStream('package.json'));
-
+        
         console.log('Removing unnecessary modules...');
 
         exec('npm prune', function(err, stdout, stderr) {
