@@ -15,8 +15,6 @@ const getFunctionName = require('./getFunctionName');
 const updateAlias = require('./updateAlias');
 const updateStageVariables = require('./updateStageVariables');
 
-console.log('runs');
-
 console.log('homedir: ', homedir);
 
 var args = minimist(process.argv.slice(2), {
