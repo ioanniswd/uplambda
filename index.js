@@ -14,11 +14,12 @@ const publishVersion = require('./publishVersion');
 const getFunctionName = require('./getFunctionName');
 const updateAlias = require('./updateAlias');
 const updateStageVariables = require('./updateStageVariables');
+const getBranches = require('./getBranches');
 
 console.log('homedir: ', homedir);
 
 var args = minimist(process.argv.slice(2), {
-  boolean: ['logs']
+  boolean: ['logs', 'v', 'version']
 });
 
 var localPath = 'localLambdas/';
@@ -84,33 +85,49 @@ getFunctionName(function(err, functionName) {
                     console.log('stderr ', stderr);
                   } else {
                     console.log('Upload done.');
-                    if (args.version) {
+                    if (args.version || args.v) {
 
-                      // publish new version (keep version number)
-                      publishVersion(functionName, function(err, version) {
+                      getBranches(function(err, currentBranch, otherBranches) {
                         if (err) {
                           console.log(err);
                         } else {
+                          let alias = currentBranch;
 
-                          // this is the version that was published
-                          console.log(`Version: ${version}`);
-
-                          // update alias or create it if it does not exist
-                          // args.version is the alias given by user (--version prod)
-                          updateAlias(functionName, args.version, version, function(err, version) {
-
+                          // publish new version (keep version number)
+                          publishVersion(functionName, function(err, version) {
                             if (err) {
                               console.log(err);
                             } else {
-                              // update api stage variables (apiId?, stage?)
-                              updateStageVariables(functionName, args.version, function(err) {
+
+                              // this is the version that was published
+                              console.log(`Version: ${version}`);
+
+                              // update alias or create it if it does not exist
+                              updateAlias(functionName, alias, version, function(err, version) {
+
                                 if (err) {
                                   console.log(err);
                                 } else {
-                                  console.log('Success');
-                                  if (args.logs) {
-                                    exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                  }
+                                  // update api stage variables (apiId, stageNames)
+                                  updateStageVariables(functionName, alias, function(err) {
+                                    if (err) {
+                                      console.log(err);
+                                    } else {
+                                      console.log('Current Branch/Lambda Alias:', alias);
+                                      if(otherBranches.length > 0) {
+                                        console.log('Other Branches:');
+                                        otherBranches.forEach(function(branchName) {
+                                          console.log(branchName);
+                                        });
+                                      } else {
+                                        console.log('No other branches');
+                                      }
+                                      console.log('Success');
+                                      if (args.logs) {
+                                        exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                      }
+                                    }
+                                  });
                                 }
                               });
                             }

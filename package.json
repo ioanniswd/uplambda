@@ -21,6 +21,6 @@
   },
   "api": {
     "apiId": "c8kn76s7j8",
-    "stageName": "testing"
+    "stageNames": ["testing"]
   }
 }
