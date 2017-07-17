@@ -76,7 +76,7 @@ getFunctionName(function(err, functionName) {
             console.log('Executing zip...');
             console.log('pwd: ', process.cwd());
 
-            exec(`zip -FSr ${functionName}.zip .`, function(err, stdout, stderr) {
+            exec(`zip -FSr ${functionName}.zip .`, {maxBuffer: 1024 * 1024}, function(err, stdout, stderr) {
               if (err) {
                 console.log(err);
               } else if (stderr) {
@@ -84,7 +84,7 @@ getFunctionName(function(err, functionName) {
               } else {
                 console.log(stdout);
                 console.log('Zip done.');
-                exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, function(err, stdout, stderr) {
+                exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {maxBuffer: 1024 * 1024}, function(err, stdout, stderr) {
                   if (err) {
                     console.log(err);
                   } else if (stderr) {
