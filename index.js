@@ -18,6 +18,10 @@ const getBranches = require('./getBranches');
 
 console.log('homedir: ', homedir);
 
+function returnNotGit(fileName) {
+  return fileName.indexOf('.git') == -1;
+}
+
 var args = minimist(process.argv.slice(2), {
   boolean: ['logs', 'v', 'version']
 });
@@ -51,7 +55,9 @@ getFunctionName(function(err, functionName) {
       process.chdir(localPath);
     }
 
-    ncp(invokeFolder, process.cwd(), function(err, files) {
+    ncp(invokeFolder, process.cwd(), {
+      filter: returnNotGit
+    }, function(err, files) {
       console.log('files: ', files);
 
       console.log('Removing unnecessary modules...');
