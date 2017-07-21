@@ -9,6 +9,7 @@ const homedir = require('os').homedir() + '/';
 const zlib = require('zlib');
 const ncp = require('ncp').ncp;
 const minimist = require('minimist');
+const npmInstallMissing = require('npm-install-missing');
 
 const publishVersion = require('./publishVersion');
 const getFunctionName = require('./getFunctionName');
@@ -75,10 +76,8 @@ getBranches(function(err, currentBranch, otherBranches) {
               console.log('stderr: ', stderr);
               console.log('Installing missing modules...');
 
-              exec('npm-install-missing', function(err, stdout, stderr) {
-                console.log('err:', err);
-                console.log('stderr: ', stderr);
-                console.log(stdout);
+              npmInstallMissing.init(function(response) {
+                console.log("npm-install-missing " + response);
                 console.log('Executing zip...');
                 console.log('pwd: ', process.cwd());
 
