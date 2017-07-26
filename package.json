@@ -31,5 +31,6 @@
     "stageNames": [
       "testing"
     ]
-  }
+  },
+  "lambdaAlias": "master"
 }
