@@ -167,30 +167,37 @@ getBranches(function(err, currentBranch, otherBranches) {
                                       if (err) {
                                         console.log(colors.red(err));
                                       } else {
-                                        // update api stage variables (apiId, stageNames)
-                                        updateStageVariables(functionName, alias, function(err) {
-                                          if (err) {
-                                            console.log(colors.red(err));
-                                          } else {
-                                            console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
-                                            if (otherBranches.length > 0) {
-                                              console.log(colors.blue('Other Branches:'));
-                                              otherBranches.forEach(function(branchName) {
-                                                if (branchName[0] == branchName[0].toUpperCase()) {
-                                                  console.log(colors.yellow(branchName));
-                                                } else {
-                                                  console.log(branchName);
-                                                }
-                                              });
+                                        // update api stage variables (apiId, stageNames), if api info exists
+                                        if (apiInfo.apiId) {
+
+                                          updateStageVariables(functionName, alias, function(err) {
+                                            if (err) {
+                                              console.log(colors.red(err));
                                             } else {
-                                              console.log(colors.yellow('No other branches'));
+                                              console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
+                                              if (otherBranches.length > 0) {
+                                                console.log(colors.blue('Other Branches:'));
+                                                otherBranches.forEach(function(branchName) {
+                                                  if (branchName[0] == branchName[0].toUpperCase()) {
+                                                    console.log(colors.yellow(branchName));
+                                                  } else {
+                                                    console.log(branchName);
+                                                  }
+                                                });
+                                              } else {
+                                                console.log(colors.yellow('No other branches'));
+                                              }
+                                              console.log('\n' + colors.green('Success'));
+                                              if (args.logs) {
+                                                exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                              }
                                             }
-                                            console.log('\n' + colors.green('Success'));
-                                            if (args.logs) {
-                                              exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                            }
+                                          });
+                                        } else {
+                                          if (args.logs) {
+                                            exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
                                           }
-                                        });
+                                        }
                                       }
                                     });
                                   }
