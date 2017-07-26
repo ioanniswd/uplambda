@@ -20,6 +20,7 @@
   "dependencies": {
     "adddep": "1.0.1",
     "chai": "^4.1.0",
+    "colors": "^1.1.2",
     "minimist": "^1.2.0",
     "mocha": "^3.4.2",
     "ncp": "^2.0.0",

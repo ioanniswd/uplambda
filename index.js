@@ -10,6 +10,7 @@ const zlib = require('zlib');
 const ncp = require('ncp').ncp;
 const minimist = require('minimist');
 const npmInstallMissing = require('npm-install-missing');
+const colors = require('colors/safe');
 
 const publishVersion = require('./publishVersion');
 const getFunctionName = require('./getFunctionName');
@@ -47,13 +48,13 @@ console.log('current directory: ', invokeFolder);
 
 getBranches(function(err, currentBranch, otherBranches) {
   if (err) {
-    console.log(err);
+    console.log(colors.red(err));
   } else {
     let alias = currentBranch;
 
     getFunctionName(function(err, functionName) {
       if (err) {
-        console.log(err);
+        console.log(colors.red(err));
       } else {
 
         localPath += functionName;
@@ -82,9 +83,9 @@ getBranches(function(err, currentBranch, otherBranches) {
 
           exec('npm prune', function(err, stdout, stderr) {
             if (err) {
-              console.log('err:', err);
+              console.log(colors.red(err));
             } else {
-              console.log('stderr: ', stderr);
+              console.log(colors.red('stderr: ', stderr));
               console.log('Installing missing modules...');
 
               npmInstallMissing.init(function(response) {
@@ -96,9 +97,9 @@ getBranches(function(err, currentBranch, otherBranches) {
                   maxBuffer: 1024 * 1024
                 }, function(err, stdout, stderr) {
                   if (err) {
-                    console.log(err);
+                    console.log(colors.red(err));
                   } else if (stderr) {
-                    console.log('stderr: ', stderr);
+                    console.log(colors.red('stderr: ', stderr));
                   } else {
                     console.log(stdout);
                     console.log('Zip done.');
@@ -106,30 +107,30 @@ getBranches(function(err, currentBranch, otherBranches) {
                       maxBuffer: 1024 * 1024
                     }, function(err, stdout, stderr) {
                       if (err) {
-                        console.log(err);
+                        console.log(colors.red(err));
                       } else if (stderr) {
-                        console.log('stderr ', stderr);
+                        console.log(colors.red('stderr ', stderr));
                       } else {
                         console.log('Upload done.');
                         let apiResourceName = functionName.toLowerCase();
                         let apiMethod;
                         getApiInfo(function(err, apiInfo) {
                           if (err) {
-                            console.log(err);
+                            console.log(colors.red(err));
 
                           } else {
                             if (!apiInfo.apiId) {
-                              console.log('Not used by any API');
+                              console.log(colors.green('Not used by any API'));
 
                             } else {
                               apiMethod = apiInfo.method;
                               if (!apiInfo.stageNames || apiInfo.stageNames.lengtht === 0) {
-                                console.log('Not used by any Stage');
+                                console.log(colors.green('Not used by any Stage'));
 
                               } else {
-                                console.log('Used in stages:');
+                                console.log(colors.blue('Used in stages:'));
                                 apiInfo.stageNames.forEach(function(stageName) {
-                                  console.log(stageName);
+                                  console.log(colors.cyan(stageName));
                                 });
                               }
                             }
@@ -139,7 +140,7 @@ getBranches(function(err, currentBranch, otherBranches) {
                             // publish new version (keep version number)
                             publishVersion(functionName, function(err, version) {
                               if (err) {
-                                console.log(err);
+                                console.log(colors.red(err));
                               } else {
 
                                 // this is the version that was published
@@ -149,23 +150,27 @@ getBranches(function(err, currentBranch, otherBranches) {
                                 updateAlias(functionName, alias, version, function(err, version) {
 
                                   if (err) {
-                                    console.log(err);
+                                    console.log(colors.red(err));
                                   } else {
                                     // update api stage variables (apiId, stageNames)
                                     updateStageVariables(functionName, alias, function(err) {
                                       if (err) {
-                                        console.log(err);
+                                        console.log(colors.red(err));
                                       } else {
-                                        console.log('Current Branch/Lambda Alias:', alias);
+                                        console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
                                         if (otherBranches.length > 0) {
-                                          console.log('Other Branches:');
+                                          console.log(colors.blue('Other Branches:'));
                                           otherBranches.forEach(function(branchName) {
-                                            console.log(branchName);
+                                            if(branchName[0] == branchName[0].toUpperCase()) {
+                                              console.log(colors.yellow(branchName));
+                                            } else {
+                                              console.log(branchName);
+                                            }
                                           });
                                         } else {
-                                          console.log('No other branches');
+                                          console.log(colors.yellow('No other branches'));
                                         }
-                                        console.log('\nSuccess');
+                                        console.log('\n' + colors.green('Success'));
                                         if (args.logs) {
                                           exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
                                         }
