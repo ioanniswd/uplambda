@@ -2,6 +2,16 @@
 const fs = require('fs');
 
 
+/**
+ * Get Lambda name
+ * @module
+ */
+/**
+ * Get Lambda name using package.json name attribute.
+ *
+ * @param  {function} callback description
+ * @return {string}          Lambda function name
+ */
 module.exports = function(callback) {
   fs.readFile('package.json', 'utf-8', function(err, data) {
     if (err) {

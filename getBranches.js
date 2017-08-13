@@ -2,6 +2,17 @@
 
 const exec = require('child_process').exec;
 
+/**
+ * Return info for branches
+ * @module
+ */
+/**
+ * Returns the current branch, which is used as the name/alias and the rest
+ * of the branches just in case.
+ *
+ * @param  {function} callback
+ * @return {object}          currentBranch and otherBranches
+ */
 module.exports = function(callback) {
   exec('git branch', function(err, stdout, stderr) {
     if (err) {

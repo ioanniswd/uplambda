@@ -3,6 +3,21 @@
 const exec = require('child_process').exec;
 const createAlias = require('./createAlias');
 
+
+/**
+ * Update lambda alias
+ * @module
+ */
+/**
+ * Updates alias for lambda with name the name of the package, for version
+ * given
+ *
+ * @param  {string} functionName Lambda function name
+ * @param  {string} name         The name/alias given to the latest version
+ * @param  {string} version      The latest version of Lambda function published
+ * @param  {function} callback
+ * @return {string}              Version changed and alias
+ */
 module.exports = function(functionName, name, version, callback) {
 
   exec(`aws lambda update-alias --function-name ${functionName} --name ${name} \
