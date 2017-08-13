@@ -19,6 +19,7 @@ const updateStageVariables = require('./updateStageVariables');
 const getBranches = require('./getBranches');
 const getApiInfo = require('./getApiInfo');
 const verifyCorrectAlias = require('./verifyCorrectAlias');
+const uploadS3 = require('./uploadS3');
 
 /**
  * Uploads lambda to AWS and updates API GW stage variables and permission
@@ -38,7 +39,7 @@ function returnNotGit(fileName) {
 }
 
 var args = minimist(process.argv.slice(2), {
-  boolean: ['logs', 'v', 'version']
+  boolean: ['logs', 'v', 'version, s3']
 });
 
 var localPath = 'localLambdas/';
@@ -118,99 +119,112 @@ getBranches(function(err, currentBranch, otherBranches) {
                       } else {
                         console.log(stdout);
                         console.log('Zip done.');
-                        exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {
-                          maxBuffer: 1024 * 1024
-                        }, function(err, stdout, stderr) {
-                          if (err) {
-                            console.log(colors.red(err));
-                          } else if (stderr) {
-                            console.log(colors.red('stderr ', stderr));
-                          } else {
-                            console.log('Upload done.');
-                            let apiResourceName = functionName.toLowerCase();
-                            let apiMethod;
-                            getApiInfo(function(err, apiInfo) {
-                              if (err) {
-                                console.log(colors.red(err));
+                        if (args.s3) {
+                          console.log('Uploading to s3..');
+                          uploadS3(functionName, function(err, res) {
+                            if (err) {
+                              throw err;
+                            } else {
+                              console.log(res);
+                              console.log('Done');
+                            }
+                          });
+                        } else {
 
-                              } else {
-                                if (!apiInfo.apiId) {
-                                  console.log(colors.green('Not used by any API'));
+                          exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {
+                            maxBuffer: 1024 * 1024
+                          }, function(err, stdout, stderr) {
+                            if (err) {
+                              console.log(colors.red(err));
+                            } else if (stderr) {
+                              console.log(colors.red('stderr ', stderr));
+                            } else {
+                              console.log('Upload done.');
+                              let apiResourceName = functionName.toLowerCase();
+                              let apiMethod;
+                              getApiInfo(function(err, apiInfo) {
+                                if (err) {
+                                  console.log(colors.red(err));
 
                                 } else {
-                                  apiMethod = apiInfo.method;
-                                  if (!apiInfo.stageNames || apiInfo.stageNames.lengtht === 0) {
-                                    console.log(colors.green('Not used by any Stage'));
+                                  if (!apiInfo.apiId) {
+                                    console.log(colors.green('Not used by any API'));
 
                                   } else {
-                                    console.log(colors.blue('Used in stages:'));
-                                    apiInfo.stageNames.forEach(function(stageName) {
-                                      console.log(colors.cyan(stageName));
-                                    });
+                                    apiMethod = apiInfo.method;
+                                    if (!apiInfo.stageNames || apiInfo.stageNames.lengtht === 0) {
+                                      console.log(colors.green('Not used by any Stage'));
+
+                                    } else {
+                                      console.log(colors.blue('Used in stages:'));
+                                      apiInfo.stageNames.forEach(function(stageName) {
+                                        console.log(colors.cyan(stageName));
+                                      });
+                                    }
                                   }
                                 }
-                              }
-                              if (args.version || args.v) {
+                                if (args.version || args.v) {
 
-                                // publish new version (keep version number)
-                                publishVersion(functionName, function(err, version) {
-                                  if (err) {
-                                    console.log(colors.red(err));
-                                  } else {
+                                  // publish new version (keep version number)
+                                  publishVersion(functionName, function(err, version) {
+                                    if (err) {
+                                      console.log(colors.red(err));
+                                    } else {
 
-                                    // this is the version that was published
-                                    console.log(`Version: ${version}`);
+                                      // this is the version that was published
+                                      console.log(`Version: ${version}`);
 
-                                    // update alias or create it if it does not exist
-                                    updateAlias(functionName, alias, version, function(err, version) {
+                                      // update alias or create it if it does not exist
+                                      updateAlias(functionName, alias, version, function(err, version) {
 
-                                      if (err) {
-                                        console.log(colors.red(err));
-                                      } else {
-                                        // update api stage variables (apiId, stageNames), if api info exists
-                                        if (apiInfo.apiId) {
-
-                                          updateStageVariables(functionName, alias, function(err) {
-                                            if (err) {
-                                              console.log(colors.red(err));
-                                            } else {
-                                              console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
-                                              if (otherBranches.length > 0) {
-                                                console.log(colors.blue('Other Branches:'));
-                                                otherBranches.forEach(function(branchName) {
-                                                  if (branchName[0] == branchName[0].toUpperCase()) {
-                                                    console.log(colors.yellow(branchName));
-                                                  } else {
-                                                    console.log(branchName);
-                                                  }
-                                                });
-                                              } else {
-                                                console.log(colors.yellow('No other branches'));
-                                              }
-                                              console.log('\n' + colors.green('Success'));
-                                              if (args.logs) {
-                                                exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                              }
-                                            }
-                                          });
+                                        if (err) {
+                                          console.log(colors.red(err));
                                         } else {
-                                          if (args.logs) {
-                                            exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                          // update api stage variables (apiId, stageNames), if api info exists
+                                          if (apiInfo.apiId) {
+
+                                            updateStageVariables(functionName, alias, function(err) {
+                                              if (err) {
+                                                console.log(colors.red(err));
+                                              } else {
+                                                console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
+                                                if (otherBranches.length > 0) {
+                                                  console.log(colors.blue('Other Branches:'));
+                                                  otherBranches.forEach(function(branchName) {
+                                                    if (branchName[0] == branchName[0].toUpperCase()) {
+                                                      console.log(colors.yellow(branchName));
+                                                    } else {
+                                                      console.log(branchName);
+                                                    }
+                                                  });
+                                                } else {
+                                                  console.log(colors.yellow('No other branches'));
+                                                }
+                                                console.log('\n' + colors.green('Success'));
+                                                if (args.logs) {
+                                                  exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                                }
+                                              }
+                                            });
+                                          } else {
+                                            if (args.logs) {
+                                              exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                            }
                                           }
                                         }
-                                      }
-                                    });
-                                  }
-                                });
+                                      });
+                                    }
+                                  });
 
-                              } else {
-                                if (args.logs) {
-                                  exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                } else {
+                                  if (args.logs) {
+                                    exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                  }
                                 }
-                              }
-                            });
-                          }
-                        });
+                              });
+                            }
+                          });
+                        }
                       }
                     });
                   });
