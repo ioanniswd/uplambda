@@ -23,7 +23,8 @@ module.exports = function(callback) {
       if (data.api) {
         info = {
           apiId: data.api.apiId,
-          stageNames: data.api.stageNames
+          stageNames: data.api.stageNames,
+          method: data.api.method
         };
       }
       callback(null, info);

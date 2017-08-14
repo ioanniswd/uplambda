@@ -39,7 +39,7 @@ function returnNotGit(fileName) {
 }
 
 var args = minimist(process.argv.slice(2), {
-  boolean: ['logs', 'v', 'version, s3']
+  boolean: ['logs', 'v', 'version, s3, publish']
 });
 
 var localPath = 'localLambdas/';
@@ -61,7 +61,7 @@ getBranches(function(err, currentBranch, otherBranches) {
           console.log('Alias in package.json is correct');
         } else {
           console.log(colors.red('Alias in package.json is not correct'));
-          if (args.v || args.version) {
+          if (args.publish) {
             throw new Error('Alias should be the name of the current branch');
 
           } else {
@@ -121,14 +121,26 @@ getBranches(function(err, currentBranch, otherBranches) {
                         console.log('Zip done.');
                         if (args.s3) {
                           console.log('Uploading to s3..');
-                          uploadS3(functionName, function(err, res) {
-                            if (err) {
-                              throw err;
-                            } else {
-                              console.log(res);
-                              console.log('Done');
-                            }
-                          });
+                          if(!args.publish) {
+                            uploadS3(functionName, null, function(err, res) {
+                              if (err) {
+                                throw err;
+                              } else {
+                                console.log(res);
+                                console.log('Done');
+                              }
+                            });
+
+                          } else {
+                            uploadS3(functionName, alias, function(err, res) {
+                              if (err) {
+                                throw err;
+                              } else {
+                                console.log(res);
+                                console.log('Done');
+                              }
+                            });
+                          }
                         } else {
 
                           exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {
@@ -163,7 +175,7 @@ getBranches(function(err, currentBranch, otherBranches) {
                                     }
                                   }
                                 }
-                                if (args.version || args.v) {
+                                if (args.publish) {
 
                                   // publish new version (keep version number)
                                   publishVersion(functionName, function(err, version) {
