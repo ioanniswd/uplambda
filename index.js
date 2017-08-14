@@ -26,7 +26,6 @@ const uploadS3 = require('./uploadS3');
  * @module Uplambda
  */
 
-console.log('homedir: ', homedir);
 
 /**
  * returnNotGit - Returns files and folders that are not .git
@@ -45,207 +44,221 @@ var args = minimist(process.argv.slice(2), {
 var localPath = 'localLambdas/';
 
 var invokeFolder = process.cwd();
-console.log('current directory: ', invokeFolder);
 
-getBranches(function(err, currentBranch, otherBranches) {
-  if (err) {
-    console.log(colors.red(err));
-  } else {
-    let alias = currentBranch;
+if (args.v || args.version) {
+  exec('npm show uplambda version', function(err, stdout, stderr) {
+    if(err) {
+      throw err;
 
-    verifyCorrectAlias(currentBranch, function(err, aliasVerified) {
-      if (err) {
-        console.log(colors.red(err));
-      } else {
-        if (aliasVerified) {
-          console.log('Alias in package.json is correct');
+    } else {
+      if(stderr) console.log(stderr);
+    process.stdout.write('v' + stdout);
+    }
+  });
+} else {
+
+  console.log('current directory: ', invokeFolder);
+
+  getBranches(function(err, currentBranch, otherBranches) {
+    if (err) {
+      console.log(colors.red(err));
+    } else {
+      let alias = currentBranch;
+
+      verifyCorrectAlias(currentBranch, function(err, aliasVerified) {
+        if (err) {
+          console.log(colors.red(err));
         } else {
-          console.log(colors.red('Alias in package.json is not correct'));
-          if (args.publish) {
-            throw new Error('Alias should be the name of the current branch');
-
+          if (aliasVerified) {
+            console.log('Alias in package.json is correct');
           } else {
-            console.log(colors.red('Alias should be the name of the current branch'));
-          }
-        }
-        getFunctionName(function(err, functionName) {
-          if (err) {
-            console.log(colors.red(err));
-          } else {
+            console.log(colors.red('Alias in package.json is not correct'));
+            if (args.publish) {
+              throw new Error('Alias should be the name of the current branch');
 
-            localPath += functionName;
-            console.log('localPath: ', localPath);
-            process.chdir(homedir);
-            if (!fs.existsSync(localPath)) {
-              console.log('local path does not exist');
-              var dirs = localPath.split('/');
-              dirs.forEach(function(dir) {
-                if (!fs.existsSync(dir)) {
-                  console.log('making dir: ', dir);
-                  fs.mkdirSync(dir);
-                }
-                process.chdir(dir);
-              });
             } else {
-              console.log('local path exists');
-              process.chdir(localPath);
+              console.log(colors.red('Alias should be the name of the current branch'));
             }
+          }
+          getFunctionName(function(err, functionName) {
+            if (err) {
+              console.log(colors.red(err));
+            } else {
 
-            ncp(invokeFolder, process.cwd(), {
-              filter: returnNotGit
-            }, function(err, files) {
+              localPath += functionName;
+              console.log('localPath: ', localPath);
+              process.chdir(homedir);
+              if (!fs.existsSync(localPath)) {
+                console.log('local path does not exist');
+                var dirs = localPath.split('/');
+                dirs.forEach(function(dir) {
+                  if (!fs.existsSync(dir)) {
+                    console.log('making dir: ', dir);
+                    fs.mkdirSync(dir);
+                  }
+                  process.chdir(dir);
+                });
+              } else {
+                console.log('local path exists');
+                process.chdir(localPath);
+              }
 
-              console.log('Removing unnecessary modules...');
+              ncp(invokeFolder, process.cwd(), {
+                filter: returnNotGit
+              }, function(err, files) {
 
-              exec('npm prune', function(err, stdout, stderr) {
-                if (err) {
-                  console.log(colors.red(err));
-                } else {
-                  console.log(colors.red('stderr: ', stderr));
-                  console.log('Installing missing modules...');
+                console.log('Removing unnecessary modules...');
 
-                  npmInstallMissing.init(function(response) {
-                    console.log("npm-install-missing " + response);
-                    console.log('Executing zip...');
-                    console.log('pwd: ', process.cwd());
+                exec('npm prune', function(err, stdout, stderr) {
+                  if (err) {
+                    console.log(colors.red(err));
+                  } else {
+                    console.log(colors.red('stderr: ', stderr));
+                    console.log('Installing missing modules...');
 
-                    exec(`zip -FSr ${functionName}.zip .`, {
-                      maxBuffer: 1024 * 1024
-                    }, function(err, stdout, stderr) {
-                      if (err) {
-                        console.log(colors.red(err));
-                      } else if (stderr) {
-                        console.log(colors.red('stderr: ', stderr));
-                      } else {
-                        console.log(stdout);
-                        console.log('Zip done.');
-                        if (args.s3) {
-                          console.log('Uploading to s3..');
-                          if(!args.publish) {
-                            uploadS3(functionName, null, function(err, res) {
-                              if (err) {
-                                throw err;
-                              } else {
-                                console.log(res);
-                                console.log('Done');
-                              }
-                            });
+                    npmInstallMissing.init(function(response) {
+                      console.log("npm-install-missing " + response);
+                      console.log('Executing zip...');
+                      console.log('pwd: ', process.cwd());
 
-                          } else {
-                            uploadS3(functionName, alias, function(err, res) {
-                              if (err) {
-                                throw err;
-                              } else {
-                                console.log(res);
-                                console.log('Done');
-                              }
-                            });
-                          }
+                      exec(`zip -FSr ${functionName}.zip .`, {
+                        maxBuffer: 1024 * 1024
+                      }, function(err, stdout, stderr) {
+                        if (err) {
+                          console.log(colors.red(err));
+                        } else if (stderr) {
+                          console.log(colors.red('stderr: ', stderr));
                         } else {
-
-                          exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {
-                            maxBuffer: 1024 * 1024
-                          }, function(err, stdout, stderr) {
-                            if (err) {
-                              console.log(colors.red(err));
-                            } else if (stderr) {
-                              console.log(colors.red('stderr ', stderr));
-                            } else {
-                              console.log('Upload done.');
-                              let apiResourceName = functionName.toLowerCase();
-                              let apiMethod;
-                              getApiInfo(function(err, apiInfo) {
+                          console.log(stdout);
+                          console.log('Zip done.');
+                          if (args.s3) {
+                            console.log('Uploading to s3..');
+                            if (!args.publish) {
+                              uploadS3(functionName, null, function(err, res) {
                                 if (err) {
-                                  console.log(colors.red(err));
-
+                                  throw err;
                                 } else {
-                                  if (!apiInfo.apiId) {
-                                    console.log(colors.green('Not used by any API'));
-
-                                  } else {
-                                    apiMethod = apiInfo.method;
-                                    if (!apiInfo.stageNames || apiInfo.stageNames.lengtht === 0) {
-                                      console.log(colors.green('Not used by any Stage'));
-
-                                    } else {
-                                      console.log(colors.blue('Used in stages:'));
-                                      apiInfo.stageNames.forEach(function(stageName) {
-                                        console.log(colors.cyan(stageName));
-                                      });
-                                    }
-                                  }
+                                  console.log(res);
+                                  console.log('Done');
                                 }
-                                if (args.publish) {
+                              });
 
-                                  // publish new version (keep version number)
-                                  publishVersion(functionName, function(err, version) {
-                                    if (err) {
-                                      console.log(colors.red(err));
-                                    } else {
-
-                                      // this is the version that was published
-                                      console.log(`Version: ${version}`);
-
-                                      // update alias or create it if it does not exist
-                                      updateAlias(functionName, alias, version, function(err, version) {
-
-                                        if (err) {
-                                          console.log(colors.red(err));
-                                        } else {
-                                          // update api stage variables (apiId, stageNames), if api info exists
-                                          if (apiInfo.apiId) {
-
-                                            updateStageVariables(functionName, alias, function(err) {
-                                              if (err) {
-                                                console.log(colors.red(err));
-                                              } else {
-                                                console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
-                                                if (otherBranches.length > 0) {
-                                                  console.log(colors.blue('Other Branches:'));
-                                                  otherBranches.forEach(function(branchName) {
-                                                    if (branchName[0] == branchName[0].toUpperCase()) {
-                                                      console.log(colors.yellow(branchName));
-                                                    } else {
-                                                      console.log(branchName);
-                                                    }
-                                                  });
-                                                } else {
-                                                  console.log(colors.yellow('No other branches'));
-                                                }
-                                                console.log('\n' + colors.green('Success'));
-                                                if (args.logs) {
-                                                  exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                                }
-                                              }
-                                            });
-                                          } else {
-                                            if (args.logs) {
-                                              exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                            }
-                                          }
-                                        }
-                                      });
-                                    }
-                                  });
-
+                            } else {
+                              uploadS3(functionName, alias, function(err, res) {
+                                if (err) {
+                                  throw err;
                                 } else {
-                                  if (args.logs) {
-                                    exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-                                  }
+                                  console.log(res);
+                                  console.log('Done');
                                 }
                               });
                             }
-                          });
+                          } else {
+
+                            exec(`aws lambda  update-function-code --function-name ${functionName}  --zip-file fileb://${functionName}.zip`, {
+                              maxBuffer: 1024 * 1024
+                            }, function(err, stdout, stderr) {
+                              if (err) {
+                                console.log(colors.red(err));
+                              } else if (stderr) {
+                                console.log(colors.red('stderr ', stderr));
+                              } else {
+                                console.log('Upload done.');
+                                let apiResourceName = functionName.toLowerCase();
+                                let apiMethod;
+                                getApiInfo(function(err, apiInfo) {
+                                  if (err) {
+                                    console.log(colors.red(err));
+
+                                  } else {
+                                    if (!apiInfo.apiId) {
+                                      console.log(colors.green('Not used by any API'));
+
+                                    } else {
+                                      apiMethod = apiInfo.method;
+                                      if (!apiInfo.stageNames || apiInfo.stageNames.lengtht === 0) {
+                                        console.log(colors.green('Not used by any Stage'));
+
+                                      } else {
+                                        console.log(colors.blue('Used in stages:'));
+                                        apiInfo.stageNames.forEach(function(stageName) {
+                                          console.log(colors.cyan(stageName));
+                                        });
+                                      }
+                                    }
+                                  }
+                                  if (args.publish) {
+
+                                    // publish new version (keep version number)
+                                    publishVersion(functionName, function(err, version) {
+                                      if (err) {
+                                        console.log(colors.red(err));
+                                      } else {
+
+                                        // this is the version that was published
+                                        console.log(`Version: ${version}`);
+
+                                        // update alias or create it if it does not exist
+                                        updateAlias(functionName, alias, version, function(err, version) {
+
+                                          if (err) {
+                                            console.log(colors.red(err));
+                                          } else {
+                                            // update api stage variables (apiId, stageNames), if api info exists
+                                            if (apiInfo.apiId) {
+
+                                              updateStageVariables(functionName, alias, function(err) {
+                                                if (err) {
+                                                  console.log(colors.red(err));
+                                                } else {
+                                                  console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
+                                                  if (otherBranches.length > 0) {
+                                                    console.log(colors.blue('Other Branches:'));
+                                                    otherBranches.forEach(function(branchName) {
+                                                      if (branchName[0] == branchName[0].toUpperCase()) {
+                                                        console.log(colors.yellow(branchName));
+                                                      } else {
+                                                        console.log(branchName);
+                                                      }
+                                                    });
+                                                  } else {
+                                                    console.log(colors.yellow('No other branches'));
+                                                  }
+                                                  console.log('\n' + colors.green('Success'));
+                                                  if (args.logs) {
+                                                    exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                                  }
+                                                }
+                                              });
+                                            } else {
+                                              if (args.logs) {
+                                                exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                              }
+                                            }
+                                          }
+                                        });
+                                      }
+                                    });
+
+                                  } else {
+                                    if (args.logs) {
+                                      exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+                                    }
+                                  }
+                                });
+                              }
+                            });
+                          }
                         }
-                      }
+                      });
                     });
-                  });
-                }
+                  }
+                });
               });
-            });
-          }
-        });
-      }
-    });
-  }
-});
+            }
+          });
+        }
+      });
+    }
+  });
+}
