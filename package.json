@@ -30,7 +30,8 @@
     "apiId": "c8kn76s7j8",
     "stageNames": [
       "testing"
-    ]
+    ],
+    "method": null
   },
   "lambdaAlias": "master"
 }
