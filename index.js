@@ -54,7 +54,7 @@ if (args.v || args.version) {
 
     } else {
       if (stderr) console.log(stderr);
-      process.stdout.write('v' + stdout);
+      process.stdout.write(stdout);
     }
   });
 } else {
