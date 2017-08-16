@@ -9,7 +9,7 @@ module.exports = function(done) {
 
     } else {
       data = JSON.parse(data);
-      console.log('data:', data);
+      // console.log('data:', data);
       if(!data.api) {
         data.api = {
           apiId: null,
