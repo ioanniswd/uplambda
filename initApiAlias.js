@@ -35,7 +35,7 @@ module.exports = function(done) {
         data.lambdaAlias = null;
       }
 
-      fs.writeFile('package.json', JSON.stringify(data, null, 2), function(err) {
+      fs.writeFile('package.json', JSON.stringify(data, null, '\t'), function(err) {
         if(err) {
           console.log(err);
           done(err);
