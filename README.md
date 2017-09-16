@@ -32,18 +32,6 @@
 ## Uplambda
 Uploads lambda to AWS and updates API GW stage variables and permission
 
-<a name="module_Uplambda..returnNotGit"></a>
-
-### Uplambda~returnNotGit(fileName) ⇒ <code>type</code>
-returnNotGit - Returns files and folders that are not .git
-
-**Kind**: inner method of [<code>Uplambda</code>](#module_Uplambda)  
-**Returns**: <code>type</code> - description  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| fileName | <code>type</code> | description |
-
 <a name="module_createAlias"></a>
 
 ## createAlias
@@ -81,7 +69,7 @@ of the branches just in case.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> |
+| callback | <code>function</code> | 
 
 <a name="module_getFunctionName"></a>
 
@@ -134,7 +122,7 @@ Get Api Id and Stage Name(s)
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> |
+| callback | <code>function</code> | 
 
 <a name="module_updateAlias"></a>
 
@@ -176,3 +164,4 @@ function alias.
 | functionName | <code>string</code> | Lambda function name |
 | name | <code>string</code> | Branch name/lambda alias |
 | callback | <code>function</code> |  |
+

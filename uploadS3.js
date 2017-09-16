@@ -18,15 +18,15 @@ const getApiInfo = require('./getApiInfo');
  * @param  {function} done Callback
  * @return {string}      S3 upload response message
  */
-module.exports = function(name, alias, done) {
+module.exports = function(name, alias, info, done) {
 
-  if(!alias) {
+  if (!alias) {
     // upload to latest
     exec(`aws s3 cp ${name}.zip s3://uplambda/code/latest/${name}.zip`, function(err, stdout, stderr) {
-      if(err) {
+      if (err) {
         done(err);
       } else {
-        if(stderr) {
+        if (stderr) {
           console.log('stderr:', stderr);
         }
         done(null, stdout);
@@ -35,36 +35,15 @@ module.exports = function(name, alias, done) {
 
   } else {
     // upload to version
-    getApiInfo(function(err, info) {
-      if(err) {
+
+    exec(`aws s3 cp ${name}.zip s3://uplambda/code/version/${name}.zip --metadata alias=${alias},apiid=${info.apiId},stageNames=${info.stageNames.join(':')},apimethod=${info.apiMethod}`, function(err, stdout, stderr) {
+      if (err) {
         done(err);
 
       } else {
-        let apiId = info.apiId;
-        let stageNames = info.stageNames.join(':');
-        let apiMethod = info.method;
-
-        console.log('apiId: ', apiId);
-        console.log('stageNames: ', stageNames);
-        console.log('apiMethod:', apiMethod);
-
-
-        if(!apiId || !stageNames || !apiMethod) {
-          done('Invalid api info in package.json');
-
-        } else {
-          exec(`aws s3 cp ${name}.zip s3://uplambda/code/version/${name}.zip --metadata alias=${alias},apiid=${apiId},stageNames=${stageNames},apimethod=${apiMethod}`, function(err, stdout, stderr) {
-            if(err) {
-              done(err);
-
-            } else {
-              if(stderr) console.log(stderr);
-              done(null, stdout);
-            }
-          });
-        }
+        if (stderr) console.log(stderr);
+        done(null, stdout);
       }
     });
   }
-
 };

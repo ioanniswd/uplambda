@@ -18,13 +18,8 @@
     "uplambda": "index.js"
   },
   "dependencies": {
-    "adddep": "1.0.1",
-    "chai": "^4.1.0",
     "colors": "^1.1.2",
-    "minimist": "^1.2.0",
-    "mocha": "^3.4.2",
-    "ncp": "^2.0.0",
-    "npm-install-missing": "^0.1.4"
+    "minimist": "^1.2.0"
   },
   "api": {
     "apiId": "c8kn76s7j8",
@@ -33,5 +28,9 @@
     ],
     "method": null
   },
-  "lambdaAlias": "master"
+  "lambdaAlias": "master",
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^3.5.3"
+  }
 }
