@@ -22,8 +22,8 @@ module.exports = function(callback) {
       let info = {};
       if (data.api) {
         info = {
-          api_id: data.api.apiId,
-          stage_names: data.api.stageNames,
+          apiId: data.api.apiId,
+          stageNames: data.api.stageNames,
           method: data.api.method
         };
       }

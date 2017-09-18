@@ -147,6 +147,7 @@ if (args.v || args.version) {
                                 let apiResourceName = functionName.toLowerCase();
                                 if (args.publish) {
 
+                                  // console.log('api_info:', api_info);
                                   if (!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) {
                                     console.log(colors.red('Invalid api/alias info'));
                                     throw new Error('Invalid api/alias info');
