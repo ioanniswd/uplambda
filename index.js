@@ -155,7 +155,7 @@ if (args.v || args.version) {
                                   } else {
                                     console.log('info.apiId: ', api_info.apiId);
                                     console.log('info.stageNames: ', api_info.stageNames);
-                                    console.log('info.apiMethod:', api_info.apiMethod);
+                                    console.log('info.method:', api_info.method);
 
                                     // publish new version (keep version number)
                                     publishVersion(functionName, function(err, version) {
