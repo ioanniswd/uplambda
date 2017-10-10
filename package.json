@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/mocha --reporter spec",
-    "readme": "jsdoc2md index.js createAlias.js getBranches.js getFunctionName.js publishVersion.js getApiInfo.js updateAlias.js updateStageVariables.js updateAPIGWPolicy.js > README.md"
+    "doc": "jsdoc2md index.js createAlias.js getBranches.js getFunctionName.js publishVersion.js getApiInfo.js updateAlias.js updateStageVariables.js updateAPIGWPolicy.js > README.md"
   },
   "repository": {
     "type": "git",

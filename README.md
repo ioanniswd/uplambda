@@ -39,7 +39,7 @@ Create Lambda Alias
 
 <a name="exp_module_createAlias--module.exports"></a>
 
-### module.exports(functionName, name, version, callback) ⇒ <code>string</code> ⏏
+### module.exports(functionName, name, version, callback, apiInfo) ⇒ <code>string</code> ⏏
 Create a new alias for the last version published for lambda and assigns
 permissions to the appropriate API GW resource for that alias
 
@@ -52,6 +52,7 @@ permissions to the appropriate API GW resource for that alias
 | name | <code>string</code> | the name/alias to be given to the new lambda version |
 | version | <code>string</code> | the most recent version which was just published |
 | callback | <code>function</code> |  |
+| apiInfo | <code>object</code> | Api info found in package json. Used with updateAPIGWPolicy |
 
 <a name="module_getBranches"></a>
 
@@ -131,7 +132,7 @@ Update lambda alias
 
 <a name="exp_module_updateAlias--module.exports"></a>
 
-### module.exports(functionName, name, version, callback) ⇒ <code>string</code> ⏏
+### module.exports(functionName, name, version, callback, apiInfo) ⇒ <code>string</code> ⏏
 Updates alias for lambda with name the name of the package, for version
 given
 
@@ -144,6 +145,7 @@ given
 | name | <code>string</code> | The name/alias given to the latest version |
 | version | <code>string</code> | The latest version of Lambda function published |
 | callback | <code>function</code> |  |
+| apiInfo | <code>object</code> | Api info found in package json. Used with create alias |
 
 <a name="module_updateAPIGWPolicy"></a>
 
@@ -152,7 +154,7 @@ Gives permissions to API GW to invoke Lambda function
 
 <a name="exp_module_updateAPIGWPolicy--module.exports"></a>
 
-### module.exports(functionName, name, callback) ⇒ <code>obj</code> ⏏
+### module.exports(functionName, name, callback, apiInfo) ⇒ <code>obj</code> ⏏
 Gives permissions to resource named functionName.toLowerCase, to invoke Lambda
 function alias.
 
@@ -164,4 +166,5 @@ function alias.
 | functionName | <code>string</code> | Lambda function name |
 | name | <code>string</code> | Branch name/lambda alias |
 | callback | <code>function</code> |  |
+| apiInfo | <code>object</code> | Api info found in package json |
 

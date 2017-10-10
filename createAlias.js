@@ -16,9 +16,10 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
  * @param  {string} name         the name/alias to be given to the new lambda version
  * @param  {string} version      the most recent version which was just published
  * @param  {function} callback
+ * @param  {object} apiInfo  Api info found in package json. Used with updateAPIGWPolicy
  * @return {string}              the most recent version for confirmation
  */
-module.exports = function(functionName, name, version, callback) {
+module.exports = function(functionName, name, version, api_info, callback) {
 
   // give permission to resource to call lambda alias
   exec(`aws lambda create-alias --function-name ${functionName} --name ${name} \
@@ -31,7 +32,7 @@ module.exports = function(functionName, name, version, callback) {
 
       let version = parseInt(JSON.parse(stdout).FunctionVersion);
 
-      updateAPIGWPolicy(functionName, name, function(err) {
+      updateAPIGWPolicy(functionName, name, api_info, function(err) {
         if (err) {
           console.log(err);
         } else {

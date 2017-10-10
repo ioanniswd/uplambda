@@ -167,7 +167,7 @@ if (args.v || args.version) {
                                         console.log(`Version: ${version}`);
 
                                         // update alias or create it if it does not exist
-                                        updateAlias(functionName, alias, version, function(err, version) {
+                                        updateAlias(functionName, alias, version, api_info, function(err, version) {
 
                                           if (err) {
                                             console.log(colors.red(err));

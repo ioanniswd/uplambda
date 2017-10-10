@@ -16,16 +16,17 @@ const createAlias = require('./createAlias');
  * @param  {string} name         The name/alias given to the latest version
  * @param  {string} version      The latest version of Lambda function published
  * @param  {function} callback
+ * @param  {object} apiInfo  Api info found in package json. Used with create alias
  * @return {string}              Version changed and alias
  */
-module.exports = function(functionName, name, version, callback) {
+module.exports = function(functionName, name, version, api_info, callback) {
 
   exec(`aws lambda update-alias --function-name ${functionName} --name ${name} \
     --function-version ${version}`, function(err, stdout, stderr) {
     if (err) {
       // if ResourceNotFoundException
       if (err.code == 255) {
-        createAlias(functionName, name, version, callback);
+        createAlias(functionName, name, version, api_info, callback);
       } else {
         callback(err);
       }

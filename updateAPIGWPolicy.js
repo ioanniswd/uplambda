@@ -1,7 +1,6 @@
 "use strict";
 
 const exec = require('child_process').exec;
-const getApiInfo = require('./getApiInfo');
 const getBranches = require('./getBranches');
 const fs = require('fs');
 const homedir = require('os').homedir();
@@ -17,40 +16,32 @@ const homedir = require('os').homedir();
  * @param  {string} functionName Lambda function name
  * @param  {string} name         Branch name/lambda alias
  * @param  {function} callback
+ * @param  {object} apiInfo  Api info found in package json
  * @return {obj}              Error if occured
  */
-module.exports = function(functionName, name, callback) {
+module.exports = function(functionName, name, api_info, callback) {
 
-  getApiInfo(function(err, apiInfo) {
+  let apiId = api_info.apiId;
+  let apiResourceName = api_info.resourceName || functionName.toLowerCase();
+  let apiMethod = api_info.method || "POST";
+  let statementId = Date.now();
+
+  console.log('homedir:', homedir);
+  fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
     if (err) {
-      console.log(err);
+      callback(err);
     } else {
-      let apiId = apiInfo.apiId;
-      let apiResourceName = apiInfo.resourceName || functionName.toLowerCase();
-      let apiMethod = apiInfo.method || "POST";
-      let statementId = Date.now();
+      let account = JSON.parse(data).account;
 
-      console.log('homedir:', homedir);
-      fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
+      exec(`aws lambda add-permission --function-name arn:aws:lambda:${account}:function:${functionName}:${name} --source-arn arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName} --principal apigateway.amazonaws.com --statement-id ${statementId} --action lambda:InvokeFunction`, function(err, stdout, stderr) {
         if (err) {
           callback(err);
+        } else if (stderr) {
+          callback(stderr);
         } else {
-          let account = JSON.parse(data).account;
-
-          exec(`aws lambda add-permission --function-name arn:aws:lambda:${account}:function:${functionName}:${name} --source-arn arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName} --principal apigateway.amazonaws.com --statement-id ${statementId} --action lambda:InvokeFunction`, function(err, stdout, stderr) {
-            if (err) {
-              callback(err);
-            } else if (stderr) {
-              callback(stderr);
-            } else {
-              callback();
-            }
-          });
-
+          callback();
         }
       });
-
     }
   });
-
 };
