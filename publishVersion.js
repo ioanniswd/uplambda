@@ -1,6 +1,10 @@
 "use strict";
-const exec = require('child_process').exec;
 
+const AWS = require('aws-sdk');
+AWS.config.update({
+  region: 'eu-west-1'
+});
+const lambda = new AWS.Lambda();
 
 /**
  * Publishes a new version for Lambda
@@ -11,18 +15,11 @@ const exec = require('child_process').exec;
  * package.
  *
  * @param  {string} functionName Lambda function name
- * @param  {function} callback
  * @return {version}              Just for confirmation
  */
-module.exports = function(functionName, callback) {
-  exec(`aws lambda publish-version --function-name ${functionName}`, function(err, stdout, stderr) {
-    if (err) {
-      callback(err);
-    } else if (stderr) {
-      callback(stderr);
-    } else {
-      let version = parseInt(JSON.parse(stdout).Version);
-      callback(null, version);
-    }
-  });
+module.exports = function(functionName) {
+  return lambda.publishVersion({
+      FunctionName: functionName
+    }).promise()
+    .then(res => Promise.resolve(res.Version));
 };

@@ -1,6 +1,10 @@
 "use strict";
 
-const exec = require('child_process').exec;
+const AWS = require('aws-sdk');
+AWS.config.update({
+  region: 'eu-west-1'
+});
+const lambda = new AWS.Lambda();
 
 const updateAPIGWPolicy = require('./updateAPIGWPolicy');
 
@@ -15,32 +19,17 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
  * @param  {string} functionName name of lambda function and current branch
  * @param  {string} name         the name/alias to be given to the new lambda version
  * @param  {string} version      the most recent version which was just published
- * @param  {function} callback
  * @param  {object} apiInfo  Api info found in package json. Used with updateAPIGWPolicy
- * @return {string}              the most recent version for confirmation
+ * @return {Promise}              Update Api GW Policy response
  */
-module.exports = function(functionName, name, version, api_info, callback) {
+module.exports = function(functionName, name, version, api_info) {
 
-  // give permission to resource to call lambda alias
-  exec(`aws lambda create-alias --function-name ${functionName} --name ${name} \
-    --function-version ${version}`, function(err, stdout, stderr) {
-    if (err) {
-      callback(err);
-    } else if (stderr) {
-      callback(stderr);
-    } else {
-
-      let version = parseInt(JSON.parse(stdout).FunctionVersion);
-
-      updateAPIGWPolicy(functionName, name, api_info, function(err) {
-        if (err) {
-          console.log(err);
-        } else {
-          console.log('Updated API GW permissions');
-          callback(null, version);
-        }
-      });
-    }
-  });
+  if (!version) return Promise.reject('Invalid version');
+  else return lambda.createAlias({
+      FunctionName: functionName,
+      FunctionVersion: version.toString(),
+      Name: name
+    }).promise()
+    .then(() => updateAPIGWPolicy(functionName, name, api_info));
 
 };

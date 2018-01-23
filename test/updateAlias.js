@@ -1,27 +1,23 @@
-var expect = require('chai').expect;
-var updateAlias = require('../updateAlias');
+"use strict";
 
+var chai = require("chai");
+var chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+const expect = chai.expect;
+
+var updateAlias = require('../updateAlias');
 
 describe('Update alias module', function() {
 
-  it('updates an existing alias', function(done) {
-    var alias = 'nonExistent1';
-    updateAlias('uplambda', alias, 1, function(err, version, name) {
-      expect(err).to.be.a('null');
-      expect(version).to.be.a('number');
-      expect(name).to.equal(alias);
-      done();
-    });
+  it('updates an existing alias', function() {
+    return expect(updateAlias('helloClaudia', 'prod', 1)).to.eventually.be.an('object');
   });
 
-  it('creates a non-existing alias', function(done) {
-    var alias = 'nonExistent3';
-    var version = 3;
-    updateAlias('uplambda', alias, version, function(err, version) {
-      expect(err).to.be.a('null');
-      expect(version).to.be.a('number');
-      done();
-    });
+  // need to update with a non-existing alias for every test
+  it('creates a non-existing alias', function() {
+    return expect(updateAlias('helloClaudia', 'nonExistent7', 3, {
+      apiId: 'qx8ef5d6mb'
+    })).to.eventually.be.an('object');
   });
 
 });

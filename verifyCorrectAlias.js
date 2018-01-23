@@ -2,13 +2,11 @@
 
 const fs = require('fs');
 
-module.exports = function(branchName, callback) {
-  fs.readFile('package.json', 'utf-8', function(err, data) {
-    if (err) {
-      callback(err);
-    } else {
-      let verified = JSON.parse(data).lambdaAlias == branchName;
-      callback(null, verified);
-    }
+module.exports = function(branchName) {
+  return new Promise(function(resolve, reject) {
+    fs.readFile('package.json', 'utf-8', function(err, data) {
+      if (err) reject(err);
+      else resolve(JSON.parse(data).lambdaAlias == branchName);
+    });
   });
 };

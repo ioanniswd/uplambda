@@ -7,11 +7,12 @@ var apiInfo;
 describe('Get Api Info Module', function() {
 
   before(function(done) {
-    getApiInfo(function(err, info) {
-      apiInfo = info;
-      expect(err).to.be.a('null');
-      done();
-    });
+    getApiInfo()
+      .then(info => {
+        apiInfo = info;
+        done();
+      })
+      .catch(done);
   });
 
   it('returns an object', function() {

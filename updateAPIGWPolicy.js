@@ -1,5 +1,11 @@
 "use strict";
 
+const AWS = require('aws-sdk');
+AWS.config.update({
+  region: 'eu-west-1'
+});
+const lambda = new AWS.Lambda();
+
 const exec = require('child_process').exec;
 const getBranches = require('./getBranches');
 const fs = require('fs');
@@ -17,31 +23,28 @@ const homedir = require('os').homedir();
  * @param  {string} name         Branch name/lambda alias
  * @param  {function} callback
  * @param  {object} apiInfo  Api info found in package json
- * @return {obj}              Error if occured
+ * @return {Promise}              
  */
 module.exports = function(functionName, name, api_info, callback) {
 
   let apiId = api_info.apiId;
   let apiResourceName = api_info.resourceName || functionName.toLowerCase();
   let apiMethod = api_info.method || "POST";
-  let statementId = Date.now();
+  let statementId = Date.now().toString();
 
-  console.log('homedir:', homedir);
-  fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
-    if (err) {
-      callback(err);
-    } else {
-      let account = JSON.parse(data).account;
+  // console.log('homedir:', homedir);
 
-      exec(`aws lambda add-permission --function-name arn:aws:lambda:${account}:function:${functionName}:${name} --source-arn arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName} --principal apigateway.amazonaws.com --statement-id ${statementId} --action lambda:InvokeFunction`, function(err, stdout, stderr) {
-        if (err) {
-          callback(err);
-        } else if (stderr) {
-          callback(stderr);
-        } else {
-          callback();
-        }
+  return new Promise(function(resolve, reject) {
+      fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
+        if (err) reject(err);
+        else resolve(JSON.parse(data).account);
       });
-    }
-  });
+    })
+    .then(account => lambda.addPermission({
+      Action: 'lambda:InvokeFunction',
+      FunctionName: `arn:aws:lambda:${account}:function:${functionName}:${name}`,
+      SourceArn: `arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName}`,
+      Principal: `apigateway.amazonaws.com`,
+      StatementId: statementId
+    }).promise());
 };

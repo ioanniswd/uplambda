@@ -9,25 +9,26 @@ const fs = require('fs');
 /**
  * Get Api Id and Stage Name(s)
  *
- * @param  {function} callback
- * @return {object}          apiId and stageNames
+ * @return {Promise}          apiId and stageNames
  */
-module.exports = function(callback) {
+module.exports = function() {
 
-  fs.readFile('package.json', 'utf-8', function(err, data) {
-    if (err) {
-      callback(err);
-    } else {
-      data = JSON.parse(data);
-      let info = {};
-      if (data.api) {
-        info = {
-          apiId: data.api.apiId,
-          stageNames: data.api.stageNames,
-          method: data.api.method
-        };
+  return new Promise(function(resolve, reject) {
+    fs.readFile('package.json', 'utf-8', function(err, data) {
+      if (err) reject(err);
+      else {
+        data = JSON.parse(data);
+        let info = {};
+        if (data.api) {
+          info = {
+            apiId: data.api.apiId,
+            stageNames: data.api.stageNames,
+            method: data.api.method
+          };
+        }
+
+        resolve(info);
       }
-      callback(null, info);
-    }
+    });
   });
 };

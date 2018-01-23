@@ -1,6 +1,11 @@
 "use strict";
 
-const exec = require('child_process').exec;
+const AWS = require('aws-sdk');
+AWS.config.update({
+  region: 'eu-west-1'
+});
+const s3 = new AWS.S3();
+
 const getApiInfo = require('./getApiInfo');
 
 /**
@@ -15,35 +20,25 @@ const getApiInfo = require('./getApiInfo');
  * latest.
  *
  * @param  {string} name Name of the lambda function and zip file
- * @param  {function} done Callback
- * @return {string}      S3 upload response message
+ * @return {Promise}      S3 upload response message
  */
-module.exports = function(name, alias, info, done) {
+module.exports = function(name, alias, info) {
 
-  if (!alias) {
-    // upload to latest
-    exec(`aws s3 cp ${name}.zip s3://uplambda/code/latest/${name}.zip`, function(err, stdout, stderr) {
-      if (err) {
-        done(err);
-      } else {
-        if (stderr) {
-          console.log('stderr:', stderr);
-        }
-        done(null, stdout);
-      }
-    });
+  var params = {
+    Bucket: 'uplambda',
+    Key: `code/latest/${name}.zip`,
+    ContentType: 'application/zip',
+    Body: ''
+  };
 
-  } else {
-    // upload to version
-
-    exec(`aws s3 cp ${name}.zip s3://uplambda/code/version/${name}.zip --metadata alias=${alias},apiid=${info.apiId},stageNames=${info.stageNames.join(':')},apimethod=${info.apiMethod}`, function(err, stdout, stderr) {
-      if (err) {
-        done(err);
-
-      } else {
-        if (stderr) console.log(stderr);
-        done(null, stdout);
-      }
-    });
+  if (alias) {
+    params.Metadata = {
+      alias: alias,
+      apiId: info.apiId,
+      stageNames: info.stageNames.join(':'),
+      apiMethod: info.apiMethod
+    };
   }
+
+  return s3.upload(params).promise();
 };
