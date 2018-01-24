@@ -84,7 +84,7 @@ if (args.v || args.version) {
           });
         })
         .then(deps => {
-          console.log('deps:', deps);
+          // console.log('deps:', deps);
           return Promise.all(deps.map(dep => {
             try {
               return require.resolve(process.cwd() + '/node_modules/' + dep);
@@ -98,7 +98,7 @@ if (args.v || args.version) {
     .then(() => getApiInfo())
     // get branches
     .then(_api_info => {
-      console.log('\n');
+      // console.log('\n');
       api_info = _api_info;
       if (!api_info.apiId) console.log(colors.green('Not used by any API'));
       else if (!api_info.stageNames || api_info.stageNames.length === 0) console.log(colors.green('Not used by any Stage'));
@@ -168,7 +168,7 @@ if (args.v || args.version) {
         }
 
       } else {
-        console.log(`Uploading to ${args.publish ? alias : '$LATEST'}..`);
+        console.log(`Uploading to ${args.publish ? colors.cyan(alias) : colors.cyan('$LATEST')}..`);
         return lambda.updateFunctionCode({
             FunctionName: functionName,
             Publish: !!args.publish,
@@ -179,7 +179,7 @@ if (args.v || args.version) {
             // console.log(res);
             var apiResourceName = functionName.toLowerCase();
             var version = res.Version;
-            console.log(`Version: ${version}`);
+            // console.log(`Version: ${version}`);
 
             if (args.publish) {
               if (!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) return Promise.reject('Invalid api/alias info');
