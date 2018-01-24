@@ -80,7 +80,11 @@ if (args.v || args.version) {
       return new Promise(function(resolve, reject) {
           fs.readFile(process.cwd() + '/package.json', 'utf-8', (err, data) => {
             if (err) reject(err);
-            else resolve(Object.keys(JSON.parse(data).dependencies));
+            else {
+              data = JSON.parse(data);
+              if (data.dependencies) resolve(Object.keys(data.dependencies));
+              else resolve([]);
+            }
           });
         })
         .then(deps => {
