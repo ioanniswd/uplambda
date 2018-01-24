@@ -28,7 +28,10 @@ module.exports = function() {
         });
 
         otherBranches = otherBranches.filter(item => item && item.length > 0);
-        resolve(currentBranch, otherBranches);
+        resolve({
+          currentBranch: currentBranch,
+          otherBranches: otherBranches
+        });
       }
     });
   });
