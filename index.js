@@ -14,8 +14,8 @@ const fs = require('fs');
 const homedir = require('os').homedir();
 const minimist = require('minimist');
 const colors = require('colors/safe');
+const JSZip = require("jszip");
 
-const publishVersion = require('./publishVersion');
 const getFunctionName = require('./getFunctionName');
 const updateAlias = require('./updateAlias');
 const updateStageVariables = require('./updateStageVariables');
@@ -53,6 +53,7 @@ if (args.v || args.version) {
 
 } else {
   getApiInfo()
+    // get branches
     .then(_api_info => {
       api_info = _api_info;
       if (!api_info.apiId) console.log(colors.green('Not used by any API'));
@@ -66,26 +67,28 @@ if (args.v || args.version) {
 
       return getBranches();
     })
+    // init api/alias info in package.json
     .then(res => {
       alias = res.currentBranch;
       otherBranches = res.otherBranches;
       return initApiAlias();
     })
     .then(() => verifyCorrectAlias(alias))
+    // logs, get functionName
     .then(aliasVerified => {
       if (aliasVerified) console.log('Alias in package.json is correct');
       else {
         console.log(colors.red('Alias in package.json is not correct'));
         if (args.publish) return Promise.reject('Alias should be the name of the current branch');
         else console.log(colors.red('Alias should be the name of the current branch'));
-
-        return getFunctionName();
       }
+      return getFunctionName();
     })
+    // zip folder
     .then(_functionName => {
       functionName = _functionName;
-      console.log('localPath: ', localPath);
-      console.log('functionName:', functionName);
+      // console.log('localPath: ', localPath);
+      // console.log('functionName:', functionName);
       return new Promise(function(resolve, reject) {
         exec(`zip -r ${homedir}/${localPath}/${functionName}.zip . -x *.git*`, {
           maxBuffer: 1024 * 1024
@@ -96,65 +99,74 @@ if (args.v || args.version) {
         });
       });
     })
+    // get zip
     .then(() => {
-      console.log('Zip done.');
+      console.log('Zip done..');
       process.chdir(`${homedir}/${localPath}`);
+      return new JSZip.external.Promise(function(resolve, reject) {
+        fs.readFile(`${functionName}.zip`, function(err, data) {
+          if (err) reject(err);
+          else resolve(data);
+        });
+      });
+    })
+    .then(zip => {
 
       if (args.s3) {
-        console.log('Uploading to s3..');
-        if (!args.publish) return uploadS3(functionName, null, null);
-        else {
-          console.log('info.apiId: ', api_info.apiId);
-          console.log('info.stageNames: ', api_info.stageNames);
-          console.log('info.apiMethod:', api_info.apiMethod);
-
-          return uploadS3(functionName, alias, api_info);
-        }
-
-      } else {
-        return lambda.updateFunctionCode({
-          FunctionName: functionName,
-          Publish: !!args.publish,
-          ZipFile: ''
-        }).promise();
-      }
-    })
-    .then(res => {
-      console.log('Upload done.');
-      console.log(res);
-      var apiResourceName = functionName.toLowerCase();
-      var version = res.Version;
-      console.log(`Version: ${version}`);
-
-      if (args.publish) {
-        if (!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) return Promise.reject('Invalid api/alias info');
+        console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
+        if (!args.publish) return uploadS3(functionName, zip, null, null);
         else {
           console.log('info.apiId: ', api_info.apiId);
           console.log('info.stageNames: ', api_info.stageNames);
           console.log('info.method:', api_info.method);
 
-          return updateAlias(functionName, alias, version, api_info)
-            .then(() => updateStageVariables(functionName, alias, api_info))
-            .then(() => {
-              console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
-              if (otherBranches.length > 0) {
-                console.log(colors.blue('Other Branches:'));
-                otherBranches.forEach(function(branchName) {
-                  if (branchName[0] == branchName[0].toUpperCase()) console.log(colors.yellow(branchName));
-                  else console.log(branchName);
-
-                });
-              } else console.log(colors.yellow('No other branches'));
-
-              return Promise.resolve();
-            });
+          return uploadS3(functionName, zip, alias, api_info);
         }
-      } else return Promise.resolve();
+
+      } else {
+        console.log(`Uploading to ${args.publish ? alias : '$LATEST'}..`);
+        return lambda.updateFunctionCode({
+            FunctionName: functionName,
+            Publish: !!args.publish,
+            ZipFile: zip
+          }).promise()
+          .then(res => {
+            console.log('Upload done.');
+            // console.log(res);
+            var apiResourceName = functionName.toLowerCase();
+            var version = res.Version;
+            console.log(`Version: ${version}`);
+
+            if (args.publish) {
+              if (!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) return Promise.reject('Invalid api/alias info');
+              else {
+                // console.log('info.apiId: ', api_info.apiId);
+                // console.log('info.stageNames: ', api_info.stageNames);
+                // console.log('info.method:', api_info.method);
+
+                return updateAlias(functionName, alias, version, api_info)
+                  .then(() => updateStageVariables(functionName, alias, api_info))
+                  .then(() => {
+                    console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
+                    if (otherBranches.length > 0) {
+                      console.log(colors.blue('Other Branches:'));
+                      otherBranches.forEach(function(branchName) {
+                        if (branchName[0] == branchName[0].toUpperCase()) console.log(colors.yellow(branchName));
+                        else console.log(branchName);
+
+                      });
+                    } else console.log(colors.yellow('No other branches'));
+
+                    return Promise.resolve();
+                  });
+              }
+            } else return Promise.resolve();
+          });
+      }
     })
     .then(() => {
       console.log('\n' + colors.green('Success'));
       if (args.logs) exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
-      else process.stdout.write('Done');
     })
     .catch(err => {
       console.log(colors.red(err));

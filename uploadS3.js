@@ -22,23 +22,26 @@ const getApiInfo = require('./getApiInfo');
  * @param  {string} name Name of the lambda function and zip file
  * @return {Promise}      S3 upload response message
  */
-module.exports = function(name, alias, info) {
+module.exports = function(name, zip, alias, info) {
 
   var params = {
     Bucket: 'uplambda',
     Key: `code/latest/${name}.zip`,
     ContentType: 'application/zip',
-    Body: ''
+    Body: zip
   };
 
   if (alias) {
+    // console.log('info:', info);
     params.Metadata = {
       alias: alias,
       apiId: info.apiId,
       stageNames: info.stageNames.join(':'),
-      apiMethod: info.apiMethod
+      apiMethod: info.method
     };
   }
+
+  // console.log('params:', params);
 
   return s3.upload(params).promise();
 };

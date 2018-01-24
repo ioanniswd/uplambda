@@ -15,7 +15,7 @@ module.exports = function(functionName, name, api_info) {
   let apiId = api_info.apiId;
   let stageNames = api_info.stageNames;
 
-  console.log('api_info:', api_info);
+  // console.log('api_info:', api_info);
 
   var promises = stageNames.map(stageName => apigateway.updateStage({
     restApiId: apiId,
@@ -29,7 +29,7 @@ module.exports = function(functionName, name, api_info) {
 
   return Promise.all(promises)
     .then(res => {
-      console.log('res:', res);
+      // console.log('res:', res);
       return Promise.resolve();
     });
 };
