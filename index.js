@@ -9,7 +9,6 @@ AWS.config.update({
 const lambda = new AWS.Lambda();
 
 const exec = require('child_process').exec;
-const path = require('path');
 const fs = require('fs');
 const homedir = require('os').homedir();
 const minimist = require('minimist');
@@ -24,7 +23,7 @@ const getApiInfo = require('./getApiInfo');
 const verifyCorrectAlias = require('./verifyCorrectAlias');
 const uploadS3 = require('./uploadS3');
 const initApiAlias = require('./initApiAlias');
-
+const depcheck = require('depcheck');
 
 /**
  * Uploads lambda to AWS and updates API GW stage variables and permission
@@ -52,9 +51,54 @@ if (args.v || args.version) {
   });
 
 } else {
-  getApiInfo()
+
+  new Promise(function(resolve, reject) {
+      // check js files for deps
+      depcheck(process.cwd(), {}, unused => {
+        try {
+          // console.log('unused:', unused);
+          if (Object.keys(unused.missing).length > 0) {
+            Object.keys(unused.missing).forEach(key => {
+              console.log(colors.red('Missing dep: ', key));
+              console.log('Files:');
+              unused.missing[key].forEach(path => {
+                console.log(path.substring(path.indexOf(process.cwd()) + process.cwd().length + 1));
+              });
+            });
+
+            reject('Missing deps, not uploading');
+          } else resolve();
+
+        } catch (e) {
+          reject(e);
+        }
+
+      });
+    })
+    // check installed modules for missing deps
+    .then(() => {
+      return new Promise(function(resolve, reject) {
+          fs.readFile(process.cwd() + '/package.json', 'utf-8', (err, data) => {
+            if (err) reject(err);
+            else resolve(Object.keys(JSON.parse(data).dependencies));
+          });
+        })
+        .then(deps => {
+          console.log('deps:', deps);
+          return Promise.all(deps.map(dep => {
+            try {
+              return require.resolve(process.cwd() + '/node_modules/' + dep);
+
+            } catch (err) {
+              return Promise.reject('Cannot find module: ' + dep);
+            }
+          }));
+        });
+    })
+    .then(() => getApiInfo())
     // get branches
     .then(_api_info => {
+      console.log('\n');
       api_info = _api_info;
       if (!api_info.apiId) console.log(colors.green('Not used by any API'));
       else if (!api_info.stageNames || api_info.stageNames.length === 0) console.log(colors.green('Not used by any Stage'));

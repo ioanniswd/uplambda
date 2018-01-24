@@ -20,6 +20,7 @@
 	"dependencies": {
 		"aws-sdk": "^2.186.0",
 		"colors": "^1.1.2",
+		"depcheck": "^0.6.8",
 		"jszip": "^3.1.5",
 		"minimist": "^1.2.0"
 	},
