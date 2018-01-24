@@ -57,8 +57,9 @@ if (args.v || args.version) {
       depcheck(process.cwd(), {}, unused => {
         try {
           // console.log('unused:', unused);
-          if (Object.keys(unused.missing).length > 0) {
-            Object.keys(unused.missing).forEach(key => {
+          var deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk');
+          if (deps.length > 0) {
+            deps.forEach(key => {
               console.log(colors.red('Missing dep: ', key));
               console.log('Files:');
               unused.missing[key].forEach(path => {
@@ -91,7 +92,9 @@ if (args.v || args.version) {
           // console.log('deps:', deps);
           return Promise.all(deps.map(dep => {
             try {
-              return require.resolve(process.cwd() + '/node_modules/' + dep);
+              console.log('dep:', dep);
+              if (dep == 'aws-sdk') return Promise.resolve();
+              else return require.resolve(process.cwd() + '/node_modules/' + dep);
 
             } catch (err) {
               return Promise.reject('Cannot find module: ' + dep);
