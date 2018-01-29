@@ -36,7 +36,7 @@ var functionName;
 var api_info;
 
 var args = minimist(process.argv.slice(2), {
-  boolean: ['logs', 'v', 'version, s3, publish']
+  boolean: ['logs', 'v', 'version', 's3', 'publish', 'f', 'force']
 });
 
 var localPath = 'localLambdas/';
@@ -57,7 +57,7 @@ if (args.v || args.version) {
       depcheck(process.cwd(), {}, unused => {
         try {
           // console.log('unused:', unused);
-          var deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk');
+          var deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk' && dep !== 'popper.js');
           if (deps.length > 0) {
             deps.forEach(key => {
               console.log(colors.red('Missing dep: ', key));
@@ -67,7 +67,9 @@ if (args.v || args.version) {
               });
             });
 
-            reject('Missing deps, not uploading');
+            if (!args.f && !args.force) reject('Missing deps, not uploading');
+            else resolve();
+
           } else resolve();
 
         } catch (e) {
