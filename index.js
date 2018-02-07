@@ -14,7 +14,7 @@ const homedir = require('os').homedir();
 const minimist = require('minimist');
 const colors = require('colors/safe');
 const JSZip = require("jszip");
-const ncu = require('npm-check-updates');
+const _ = require('lodash');
 
 const getFunctionName = require('./getFunctionName');
 const updateAlias = require('./updateAlias');
@@ -105,33 +105,14 @@ if (args.v || args.version) {
           }));
         });
     })
-    // check if all packages are updated and update
+    // update packages
     .then(() => {
-      return ncu.run({
-        // Always specify the path to the package file
-        packageFile: 'package.json',
-        // Any command-line option can be specified here.
-        // These are set by default:
-        silent: true,
-        loglevel: 'silent',
-        jsonUpgraded: true,
-        upgradeAll: true,
-        prod: true
-      }).then((upgraded) => {
-        console.log('then');
-        if (Object.keys(upgraded).length > 0) {
-          console.log('dependencies to upgrade:\n', upgraded);
-          return new Promise(function(resolve, reject) {
-            exec('npm install ' + Object.keys(upgraded).join(' '), (err, stderr, stdout) => {
-              if (err) reject(err);
-              else if (stderr) reject(stderr);
-              else resolve();
-            });
-          });
-        } else {
-          console.log('All packages are up-to-date');
-          return Promise.resolve();
-        }
+      return new Promise(function(resolve, reject) {
+        exec('npm update --no-save', (err, stderr, stdout) => {
+          if (err) reject(err);
+          if (stderr) reject(stderr);
+          else resolve();
+        });
       });
     })
     .then(() => getApiInfo())
