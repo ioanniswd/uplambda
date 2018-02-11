@@ -21,6 +21,7 @@ const updateAlias = require('./updateAlias');
 const updateStageVariables = require('./updateStageVariables');
 const getBranches = require('./getBranches');
 const getApiInfo = require('./getApiInfo');
+const updateAPIGWPolicy = require('./updateAPIGWPolicy');
 const verifyCorrectAlias = require('./verifyCorrectAlias');
 const uploadS3 = require('./uploadS3');
 const initApiAlias = require('./initApiAlias');
@@ -224,7 +225,8 @@ if (args.v || args.version) {
                     return Promise.resolve();
                   });
               }
-            } else return Promise.resolve();
+            } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
+              .then(() => updateAPIGWPolicy(functionName, 'dev', api_info));
           });
       }
     })

@@ -23,11 +23,12 @@ const homedir = require('os').homedir();
  * @param  {string} name         Branch name/lambda alias
  * @param  {function} callback
  * @param  {object} apiInfo  Api info found in package json
- * @return {Promise}              
+ * @return {Promise}
  */
 module.exports = function(functionName, name, api_info, callback) {
 
-  let apiId = api_info.apiId;
+  // for dev permissions
+  let apiId = api_info.apiId || '*';
   let apiResourceName = api_info.resourceName || functionName.toLowerCase();
   let apiMethod = api_info.method || "POST";
   let statementId = Date.now().toString();
