@@ -25,6 +25,7 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
 const verifyCorrectAlias = require('./verifyCorrectAlias');
 const uploadS3 = require('./uploadS3');
 const initApiAlias = require('./initApiAlias');
+const getStageVariable = require('./getStageVariable');
 const depcheck = require('depcheck');
 
 /**
@@ -227,6 +228,21 @@ if (args.v || args.version) {
               }
             } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
               .then(() => updateAPIGWPolicy(functionName, 'dev', api_info));
+          });
+      }
+    })
+    // if uploading to $LATEST, check dev stage variable of api to confirm dev alias is invoked
+    .then(() => {
+      if (args.publish || !api_info.apiId) return Promise.resolve();
+      else {
+        return getStageVariable(api_info.apiId, functionName)
+          .then(stageVariable => {
+            if (stageVariable !== 'dev') {
+              console.log('\n' + colors.red(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
+              console.log('\n' + colors.red(`For tests on front end, set Stage Variable with name '${functionName}' equal to 'dev' in API GW, stage 'dev'`));
+            }
+            else console.log('\n' + colors.green(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
+            return Promise.resolve();
           });
       }
     })
