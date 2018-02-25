@@ -157,7 +157,7 @@ if (args.v || args.version) {
       // console.log('functionName:', functionName);
       return new Promise(function(resolve, reject) {
         exec(`zip -r ${homedir}/${localPath}/${functionName}.zip . -x *.git*`, {
-          maxBuffer: 1024 * 1024
+          maxBuffer: 1e8
         }, function(err, stdout, stderr) {
           if (err) reject(err);
           else if (stderr) reject(stderr);

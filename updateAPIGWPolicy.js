@@ -6,7 +6,6 @@ AWS.config.update({
 });
 const lambda = new AWS.Lambda();
 
-const exec = require('child_process').exec;
 const getBranches = require('./getBranches');
 const fs = require('fs');
 const homedir = require('os').homedir();

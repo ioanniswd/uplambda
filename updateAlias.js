@@ -7,7 +7,6 @@ AWS.config.update({
 });
 const lambda = new AWS.Lambda();
 
-const exec = require('child_process').exec;
 const createAlias = require('./createAlias');
 
 

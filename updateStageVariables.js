@@ -6,7 +6,6 @@ AWS.config.update({
 });
 const apigateway = new AWS.APIGateway();
 
-const exec = require('child_process').exec;
 const getApiInfo = require('./getApiInfo');
 
 // name is the alias for the current version
