@@ -44,6 +44,8 @@ var args = minimist(process.argv.slice(2), {
 
 var localPath = 'localLambdas/';
 
+var package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
+
 if (args.v || args.version) {
   exec('npm show uplambda version', function(err, stdout, stderr) {
     if (err) throw err;
@@ -83,29 +85,24 @@ if (args.v || args.version) {
     })
     // check installed modules for missing deps
     .then(() => {
-      return new Promise(function(resolve, reject) {
-          fs.readFile(process.cwd() + '/package.json', 'utf-8', (err, data) => {
-            if (err) reject(err);
-            else {
-              data = JSON.parse(data);
-              if (data.dependencies) resolve(Object.keys(data.dependencies));
-              else resolve([]);
-            }
-          });
-        })
-        .then(deps => {
-          // console.log('deps:', deps);
-          return Promise.all(deps.map(dep => {
-            try {
-              console.log('dep:', dep);
-              if (dep == 'aws-sdk') return Promise.resolve();
-              else return require.resolve(process.cwd() + '/node_modules/' + dep);
+      return Promise.all(Object.keys(package_json.dependencies).map(dep => {
+        try {
+          console.log('dep:', dep);
+          if (dep == 'aws-sdk') return Promise.resolve();
+          else return require.resolve(process.cwd() + '/node_modules/' + dep);
 
-            } catch (err) {
-              return Promise.reject('Cannot find module: ' + dep);
-            }
-          }));
-        });
+        } catch (err) {
+          return Promise.reject('Cannot find module: ' + dep);
+        }
+      }));
+    })
+    // check if required files are in the folder
+    .then(() => {
+      if (!package_json.files) return Promise.resolve();
+      else {
+        let missing = _.find(package_json.files, filename => !fs.existsSync(`${process.cwd()}/${filename}`));
+        return missing ? Promise.reject(`File: ${missing} is missing`) : Promise.resolve();
+      }
     })
     // update packages
     .then(() => {
@@ -240,8 +237,7 @@ if (args.v || args.version) {
             if (stageVariable !== 'dev') {
               console.log('\n' + colors.red(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
               console.log('\n' + colors.red(`For tests on front end, set Stage Variable with name '${functionName}' equal to 'dev' in API GW, stage 'dev'`));
-            }
-            else console.log('\n' + colors.green(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
+            } else console.log('\n' + colors.green(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
             return Promise.resolve();
           });
       }
