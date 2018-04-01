@@ -10,6 +10,7 @@ const lambda = new AWS.Lambda();
 
 const exec = require('child_process').exec;
 const fs = require('fs');
+const path = require('path');
 const homedir = require('os').homedir();
 const minimist = require('minimist');
 const colors = require('colors/safe');
@@ -100,7 +101,7 @@ if (args.v || args.version) {
     .then(() => {
       if (!package_json.files) return Promise.resolve();
       else {
-        let missing = _.find(package_json.files, filename => !fs.existsSync(`${process.cwd()}/${filename}`));
+        let missing = _.find(package_json.files, filename => !fs.existsSync(path.join(process.cwd(), filename)));
         return missing ? Promise.reject(`File: ${missing} is missing`) : Promise.resolve();
       }
     })
