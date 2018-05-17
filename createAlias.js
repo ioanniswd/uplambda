@@ -30,6 +30,5 @@ module.exports = function(functionName, name, version, api_info) {
       FunctionVersion: version.toString(),
       Name: name
     }).promise()
-    .then(() => updateAPIGWPolicy(functionName, name, api_info));
-
+    .then(() => (api_info && api_info.apiId) ? updateAPIGWPolicy(functionName, name, api_info) : Promise.resolve());
 };

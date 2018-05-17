@@ -178,7 +178,7 @@ if (args.v || args.version) {
 
       if (args.s3) {
         console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
-        if (!args.publish) return uploadS3(functionName, zip, null, null);
+        if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null);
         else {
           console.log('info.apiId: ', api_info.apiId);
           console.log('info.stageNames: ', api_info.stageNames);
@@ -202,14 +202,14 @@ if (args.v || args.version) {
             // console.log(`Version: ${version}`);
 
             if (args.publish) {
-              if (!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) return Promise.reject('Invalid api/alias info');
+              if ((!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) && !package_json.no_api) return Promise.reject('Invalid api/alias info');
               else {
                 // console.log('info.apiId: ', api_info.apiId);
                 // console.log('info.stageNames: ', api_info.stageNames);
                 // console.log('info.method:', api_info.method);
 
                 return updateAlias(functionName, alias, version, api_info)
-                  .then(() => updateStageVariables(functionName, alias, api_info))
+                  .then(() => package_json.no_api ? Promise.resolve() : updateStageVariables(functionName, alias, api_info))
                   .then(() => {
                     console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
                     if (otherBranches.length > 0) {
@@ -225,7 +225,7 @@ if (args.v || args.version) {
                   });
               }
             } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
-              .then(() => updateAPIGWPolicy(functionName, 'dev', api_info));
+              .then(() => package_json.no_api ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info));
           });
       }
     })
