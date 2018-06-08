@@ -133,6 +133,7 @@ if (args.v || args.version) {
     })
     // init api/alias info in package.json
     .then(res => {
+      console.log('139');
       alias = res.currentBranch;
       otherBranches = res.otherBranches;
       return initApiAlias();
