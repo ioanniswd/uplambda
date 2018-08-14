@@ -28,6 +28,7 @@ const uploadS3 = require('./uploadS3');
 const initApiAlias = require('./initApiAlias');
 const getStageVariable = require('./getStageVariable');
 const depcheck = require('depcheck');
+const checkLambdaPolicy = require('./checkLambdaPolicy');
 
 /**
  * Uploads lambda to AWS and updates API GW stage variables and permission
@@ -225,7 +226,7 @@ if (args.v || args.version) {
                   });
               }
             } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
-              .then(() => package_json.no_api ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info));
+              .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info)));
           });
       }
     })
