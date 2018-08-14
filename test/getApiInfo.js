@@ -2,7 +2,7 @@
 
 const expect = require('chai').expect;
 const getApiInfo = require('../getApiInfo');
-var apiInfo;
+let apiInfo;
 
 describe('Get Api Info Module', function() {
 

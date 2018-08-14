@@ -34,18 +34,18 @@ const depcheck = require('depcheck');
  * @module Uplambda
  */
 
-var alias;
-var otherBranches;
-var functionName;
-var api_info;
+let alias;
+let otherBranches;
+let functionName;
+let api_info;
 
-var args = minimist(process.argv.slice(2), {
+const args = minimist(process.argv.slice(2), {
   boolean: ['logs', 'v', 'version', 's3', 'publish', 'f', 'force']
 });
 
-var localPath = 'localLambdas/';
+const localPath = 'localLambdas/';
 
-var package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
+const package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
 
 if (args.v || args.version) {
   exec('npm show uplambda version', function(err, stdout, stderr) {
@@ -63,7 +63,7 @@ if (args.v || args.version) {
       depcheck(process.cwd(), {}, unused => {
         try {
           // console.log('unused:', unused);
-          var deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk' && dep !== 'popper.js');
+          const deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk' && dep !== 'popper.js');
           if (deps.length > 0) {
             deps.forEach(key => {
               console.log(colors.red('Missing dep: ', key));
@@ -101,14 +101,14 @@ if (args.v || args.version) {
     .then(() => {
       if (!package_json.files) return Promise.resolve();
       else {
-        let missing = _.find(package_json.files, filename => !fs.existsSync(path.join(process.cwd(), filename)));
+        const missing = _.find(package_json.files, filename => !fs.existsSync(path.join(process.cwd(), filename)));
         return missing ? Promise.reject(`File: ${missing} is missing`) : Promise.resolve();
       }
     })
     // update packages
     .then(() => {
       return new Promise(function(resolve, reject) {
-        exec('npm update --no-save', (err, stderr, stdout) => {
+        exec('npm update --no-save', (err, stderr) => {
           if (err) reject(err);
           if (stderr) reject(stderr);
           else resolve();
@@ -198,8 +198,7 @@ if (args.v || args.version) {
           .then(res => {
             console.log('Upload done.');
             // console.log(res);
-            var apiResourceName = functionName.toLowerCase();
-            var version = res.Version;
+            const version = res.Version;
             // console.log(`Version: ${version}`);
 
             if (args.publish) {

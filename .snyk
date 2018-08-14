@@ -1,4 +1,80 @@
 # Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
-version: v1.10.2
+version: v1.12.0
 ignore: {}
-patch: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  'npm:hoek:20180212':
+    - npm-install-missing > npm > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > hawk > sntp > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > hawk > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > hawk > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > hawk > cryptiles > boom > hoek:
+        patched: '2018-08-14T08:41:29.252Z'
+  'npm:stringstream:20180511':
+    - npm-install-missing > npm > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > stringstream:
+        patched: '2018-08-14T08:41:29.252Z'
+  'npm:tough-cookie:20170905':
+    - npm-install-missing > npm > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > node-gyp > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > node-gyp > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > npm-registry-client > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'
+    - npm-install-missing > npm > npm-registry-client > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'
+    - adddep > npm > request > tough-cookie:
+        patched: '2018-08-14T08:41:29.252Z'

@@ -6,17 +6,15 @@ AWS.config.update({
 });
 const apigateway = new AWS.APIGateway();
 
-const getApiInfo = require('./getApiInfo');
-
 // name is the alias for the current version
 module.exports = function(functionName, name, api_info) {
 
-  let apiId = api_info.apiId;
-  let stageNames = api_info.stageNames;
+  const apiId = api_info.apiId;
+  const stageNames = api_info.stageNames;
 
   // console.log('api_info:', api_info);
 
-  var promises = stageNames.map(stageName => apigateway.updateStage({
+  const promises = stageNames.map(stageName => apigateway.updateStage({
     restApiId: apiId,
     stageName: stageName,
     patchOperations: [{
@@ -27,7 +25,7 @@ module.exports = function(functionName, name, api_info) {
   }).promise());
 
   return Promise.all(promises)
-    .then(res => {
+    .then(() => {
       // console.log('res:', res);
       return Promise.resolve();
     });

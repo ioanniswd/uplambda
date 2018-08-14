@@ -1,12 +1,11 @@
 "use strict";
 
-var chai = require("chai");
-var chaiAsPromised = require("chai-as-promised");
+const chai = require("chai");
+const chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-var updateStageVariables = require('../updateStageVariables');
-var fs = require('fs');
+const updateStageVariables = require('../updateStageVariables');
 
 describe('Update stage variables module', function() {
 

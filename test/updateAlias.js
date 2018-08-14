@@ -1,11 +1,11 @@
 "use strict";
 
-var chai = require("chai");
-var chaiAsPromised = require("chai-as-promised");
+const chai = require("chai");
+const chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 
-var updateAlias = require('../updateAlias');
+const updateAlias = require('../updateAlias');
 
 describe('Update alias module', function() {
 

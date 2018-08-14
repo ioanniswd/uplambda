@@ -6,7 +6,6 @@ AWS.config.update({
 });
 const lambda = new AWS.Lambda();
 
-const getBranches = require('./getBranches');
 const fs = require('fs');
 const homedir = require('os').homedir();
 
@@ -24,13 +23,13 @@ const homedir = require('os').homedir();
  * @param  {object} apiInfo  Api info found in package json
  * @return {Promise}
  */
-module.exports = function(functionName, name, api_info, callback) {
+module.exports = function(functionName, name, api_info) {
 
   // for dev permissions
-  let apiId = api_info.apiId || '*';
-  let apiResourceName = api_info.resourceName || functionName.toLowerCase();
-  let apiMethod = api_info.method || "POST";
-  let statementId = Date.now().toString();
+  const apiId = api_info.apiId || '*';
+  const apiResourceName = api_info.resourceName || functionName.toLowerCase();
+  const apiMethod = api_info.method || "POST";
+  const statementId = Date.now().toString();
 
   // console.log('homedir:', homedir);
 

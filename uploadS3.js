@@ -6,8 +6,6 @@ AWS.config.update({
 });
 const s3 = new AWS.S3();
 
-const getApiInfo = require('./getApiInfo');
-
 /**
  * Uploads zip to S3 bucket.
  * @module
@@ -24,7 +22,7 @@ const getApiInfo = require('./getApiInfo');
  */
 module.exports = function(name, zip, alias, info) {
 
-  var params = {
+  const params = {
     Bucket: 'uplambda',
     Key: `code/latest/${name}.zip`,
     ContentType: 'application/zip',
