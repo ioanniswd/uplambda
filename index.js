@@ -60,6 +60,11 @@ if (args.v || args.version) {
 } else {
 
   new Promise(function(resolve, reject) {
+    fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
+      if (err) reject(err);
+      else resolve(JSON.parse(data).account);
+    });
+  }).then(account => new Promise(function(resolve, reject) {
       // check js files for deps
       depcheck(process.cwd(), {}, unused => {
         try {
@@ -226,7 +231,7 @@ if (args.v || args.version) {
                   });
               }
             } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
-              .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info)));
+              .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info, account).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info, account)));
           });
       }
     })
@@ -251,5 +256,6 @@ if (args.v || args.version) {
     .catch(err => {
       console.log(colors.red(err));
       process.exit(1);
-    });
+    }));
+
 }
