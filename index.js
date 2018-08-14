@@ -3,10 +3,6 @@
 "use strict";
 
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const lambda = new AWS.Lambda();
 
 const exec = require('child_process').exec;
 const fs = require('fs');
@@ -16,6 +12,7 @@ const minimist = require('minimist');
 const colors = require('colors/safe');
 const JSZip = require("jszip");
 const _ = require('lodash');
+const prompt = require('prompt-promise');
 
 const getFunctionName = require('./getFunctionName');
 const updateAlias = require('./updateAlias');
@@ -41,7 +38,7 @@ let functionName;
 let api_info;
 
 const args = minimist(process.argv.slice(2), {
-  boolean: ['logs', 'v', 'version', 's3', 'publish', 'f', 'force']
+  boolean: ['logs', 'v', 'version', 's3', 'publish', 'f', 'force', 'account']
 });
 
 const localPath = 'localLambdas/';
@@ -58,204 +55,312 @@ if (args.v || args.version) {
   });
 
 } else {
-
   new Promise(function(resolve, reject) {
-    fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
-      if (err) reject(err);
-      else resolve(JSON.parse(data).account);
-    });
-  }).then(account => new Promise(function(resolve, reject) {
-      // check js files for deps
-      depcheck(process.cwd(), {}, unused => {
-        try {
-          // console.log('unused:', unused);
-          const deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk' && dep !== 'popper.js');
-          if (deps.length > 0) {
-            deps.forEach(key => {
-              console.log(colors.red('Missing dep: ', key));
-              console.log('Files:');
-              unused.missing[key].forEach(path => {
-                console.log(path.substring(path.indexOf(process.cwd()) + process.cwd().length + 1));
-              });
+      fs.readFile(homedir + '/.uplambda.json', 'utf-8', function(err, data) {
+        if (err) {
+          if (err.code != 'ENOENT') reject(err);
+          else if (args.account && args.add) resolve({});
+          else reject(`Config file ${homedir}/.uplambda.json was not found. Run "uplambda --account --add" to init`);
+        } else resolve(JSON.parse(data));
+      });
+    }).then(config => {
+      let account;
+      let bucket;
+      let s3_prefix;
+
+      const tmp_accounts = _.filter(config, {
+        active: true
+      });
+
+      if (args.account && !args.use) {
+        if (!args.add && !args.delete && !args.list) return Promise.reject('When updating accounts, use --add to add/update account, and --delete to delete an account');
+        if (args.list) {
+          console.log('Accounts:\n' + JSON.stringify(config, null, 2));
+          return Promise.resolve();
+
+        } else if (args.delete) {
+          if (!config[args.delete]) return Promise.reject(`Account: "${args.delete === true ? undefined : args.delete}" not found`);
+          else {
+            delete config[args.delete];
+            return fs.writeFileSync(homedir + '/.uplambda.json', JSON.stringify(config, null, 2));
+          }
+
+        } else {
+          let account_name;
+          let account;
+          let active = false;
+          let bucket;
+          let s3_prefix = '';
+
+          return prompt('account alias/name(e.g. my_project_account): ')
+            .then(res => {
+              if (!res) return Promise.reject('Invalid account name.');
+
+              account_name = res;
+              return prompt('account arn(region:account_number, e.g. eu-west-1:1234567890): ');
+            })
+            .then(res => {
+              if (!res || !res.match(/^[a-z]{2}-[a-z0-9]+-\d{1,2}:\d+$/)) return Promise.reject('Invalid account arn, must match /^[a-z]{2}-[a-z0-9]+-\\d{1, 2}:\\d+$/.');
+
+              account = res;
+              return prompt('set account as active?(y/n): ');
+            })
+            .then(res => {
+
+              if (res && res[0].toLowerCase() === 'y') {
+                _.each(tmp_accounts, item => {
+                  item.active = false;
+                });
+
+                active = true;
+              }
+
+              return prompt('S3 bucket used with updates via S3 (Optional): ');
+            })
+            .then(res => {
+              if (res) bucket = res;
+
+              return prompt('Set S3 item prefix (Optional): ');
+            })
+            .then(res => {
+              if (res) {
+                if (res[res.length - 1] !== '/') res += '/';
+                s3_prefix = res;
+              }
+
+              config[account_name] = {
+                account: account,
+                active: active,
+                bucket: bucket,
+                s3_prefix: s3_prefix
+              };
+
+              return fs.writeFileSync(homedir + '/.uplambda.json', JSON.stringify(config, null, 2));
             });
-
-            if (!args.f && !args.force) reject('Missing deps, not uploading');
-            else resolve();
-
-          } else resolve();
-
-        } catch (e) {
-          reject(e);
         }
 
-      });
-    })
-    // check installed modules for missing deps
-    .then(() => {
-      return Promise.all(Object.keys(package_json.dependencies).map(dep => {
-        try {
-          console.log('dep:', dep);
-          if (dep == 'aws-sdk') return Promise.resolve();
-          else return require.resolve(process.cwd() + '/node_modules/' + dep);
+      } else if (args.use) {
+        if (!config[args.use]) return Promise.reject(`Account: "${args.use}" not found. Run "uplambda --account --add"`);
 
-        } catch (err) {
-          return Promise.reject('Cannot find module: ' + dep);
-        }
-      }));
-    })
-    // check if required files are in the folder
-    .then(() => {
-      if (!package_json.files) return Promise.resolve();
-      else {
-        const missing = _.find(package_json.files, filename => !fs.existsSync(path.join(process.cwd(), filename)));
-        return missing ? Promise.reject(`File: ${missing} is missing`) : Promise.resolve();
-      }
-    })
-    // update packages
-    .then(() => {
-      return new Promise(function(resolve, reject) {
-        exec('npm update --no-save', (err, stderr) => {
-          if (err) reject(err);
-          if (stderr) reject(stderr);
-          else resolve();
+        _.each(config, item => {
+          item.active = false;
         });
-      });
-    })
-    .then(() => getApiInfo())
-    // get branches
-    .then(_api_info => {
-      // console.log('\n');
-      api_info = _api_info;
-      if (!api_info.apiId) console.log(colors.green('Not used by any API'));
-      else if (!api_info.stageNames || api_info.stageNames.length === 0) console.log(colors.green('Not used by any Stage'));
-      else {
-        console.log(colors.blue('Used in stages:'));
-        api_info.stageNames.forEach(function(stageName) {
-          console.log(colors.cyan(stageName));
-        });
-      }
 
-      return getBranches();
-    })
-    // init api/alias info in package.json
-    .then(res => {
-      console.log('139');
-      alias = res.currentBranch;
-      otherBranches = res.otherBranches;
-      return initApiAlias();
-    })
-    .then(() => verifyCorrectAlias(alias))
-    // logs, get functionName
-    .then(aliasVerified => {
-      if (aliasVerified) console.log('Alias in package.json is correct');
-      else {
-        console.log(colors.red('Alias in package.json is not correct'));
-        if (args.publish) return Promise.reject('Alias should be the name of the current branch');
-        else console.log(colors.red('Alias should be the name of the current branch'));
-      }
-      return getFunctionName();
-    })
-    // zip folder
-    .then(_functionName => {
-      functionName = _functionName;
-      // console.log('localPath: ', localPath);
-      // console.log('functionName:', functionName);
-      return new Promise(function(resolve, reject) {
-        exec(`zip -r ${homedir}/${localPath}/${functionName}.zip . -x *.git*`, {
-          maxBuffer: 1e8
-        }, function(err, stdout, stderr) {
-          if (err) reject(err);
-          else if (stderr) reject(stderr);
-          else resolve();
-        });
-      });
-    })
-    // get zip
-    .then(() => {
-      console.log('Zip done..');
-      process.chdir(`${homedir}/${localPath}`);
-      return new JSZip.external.Promise(function(resolve, reject) {
-        fs.readFile(`${functionName}.zip`, function(err, data) {
-          if (err) reject(err);
-          else resolve(data);
-        });
-      });
-    })
-    .then(zip => {
+        config[args.use].active = true;
 
-      if (args.s3) {
-        console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
-        if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null);
-        else {
-          console.log('info.apiId: ', api_info.apiId);
-          console.log('info.stageNames: ', api_info.stageNames);
-          console.log('info.method:', api_info.method);
+        fs.writeFileSync(homedir + '/.uplambda.json', JSON.stringify(config, null, 2));
 
-          return uploadS3(functionName, zip, alias, api_info);
-        }
+        console.log(`\nAccount "${args.use}" was activated`);
+        return Promise.resolve();
 
       } else {
-        console.log(`Uploading to ${args.publish ? colors.cyan(alias) : colors.cyan('$LATEST')}..`);
-        return lambda.updateFunctionCode({
-            FunctionName: functionName,
-            Publish: !!args.publish,
-            ZipFile: zip
-          }).promise()
-          .then(res => {
-            console.log('Upload done.');
-            // console.log(res);
-            const version = res.Version;
-            // console.log(`Version: ${version}`);
+        if (tmp_accounts.length === 0) return Promise.reject(`Invalid ${homedir}/.uplambda.json. At least one account must be active at a time. Run "uplambda --account --use <your_account_alias>" to choose which account to enable`);
+        if (tmp_accounts.length !== 1) return Promise.reject(`Invalid ${homedir}/.uplambda.json. Only one account can be active at a time. Run "uplambda --account --use <your_account_alias>" to choose which account to enable`);
+        else {
+          account = tmp_accounts[0].account;
+          bucket = tmp_accounts[0].bucket;
+          s3_prefix = tmp_accounts[0].s3_prefix;
+        }
 
-            if (args.publish) {
-              if ((!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) && !package_json.no_api) return Promise.reject('Invalid api/alias info');
-              else {
-                // console.log('info.apiId: ', api_info.apiId);
-                // console.log('info.stageNames: ', api_info.stageNames);
-                // console.log('info.method:', api_info.method);
+        AWS.config.update({
+          region: account.match(/^(.+):/)[1]
+        });
+        const lambda = new AWS.Lambda();
 
-                return updateAlias(functionName, alias, version, api_info)
-                  .then(() => package_json.no_api ? Promise.resolve() : updateStageVariables(functionName, alias, api_info))
-                  .then(() => {
-                    console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
-                    if (otherBranches.length > 0) {
-                      console.log(colors.blue('Other Branches:'));
-                      otherBranches.forEach(function(branchName) {
-                        if (branchName[0] == branchName[0].toUpperCase()) console.log(colors.yellow(branchName));
-                        else console.log(branchName);
-
-                      });
-                    } else console.log(colors.yellow('No other branches'));
-
-                    return Promise.resolve();
+        return new Promise(function(resolve, reject) {
+            // check js files for deps
+            depcheck(process.cwd(), {}, unused => {
+              try {
+                // console.log('unused:', unused);
+                const deps = Object.keys(unused.missing).filter(dep => dep !== 'aws-sdk' && dep !== 'popper.js');
+                if (deps.length > 0) {
+                  deps.forEach(key => {
+                    console.log(colors.red('Missing dep: ', key));
+                    console.log('Files:');
+                    unused.missing[key].forEach(path => {
+                      console.log(path.substring(path.indexOf(process.cwd()) + process.cwd().length + 1));
+                    });
                   });
+
+                  if (!args.f && !args.force) reject('Missing deps, not uploading');
+                  else resolve();
+
+                } else resolve();
+
+              } catch (e) {
+                reject(e);
               }
-            } else return updateAlias(functionName, 'dev', '$LATEST', api_info)
-              .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info, account).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info, account)));
-          });
-      }
-    })
-    // if uploading to $LATEST, check dev stage variable of api to confirm dev alias is invoked
-    .then(() => {
-      if (args.publish || !api_info.apiId) return Promise.resolve();
-      else {
-        return getStageVariable(api_info.apiId, functionName)
-          .then(stageVariable => {
-            if (stageVariable !== 'dev') {
-              console.log('\n' + colors.red(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
-              console.log('\n' + colors.red(`For tests on front end, set Stage Variable with name '${functionName}' equal to 'dev' in API GW, stage 'dev'`));
-            } else console.log('\n' + colors.green(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
-            return Promise.resolve();
+
+            });
+          })
+          // check installed modules for missing deps
+          .then(() => {
+            return Promise.all(Object.keys(package_json.dependencies).map(dep => {
+              try {
+                console.log('dep:', dep);
+                if (dep == 'aws-sdk') return Promise.resolve();
+                else return require.resolve(process.cwd() + '/node_modules/' + dep);
+
+              } catch (err) {
+                return Promise.reject('Cannot find module: ' + dep);
+              }
+            }));
+          })
+          // check if required files are in the folder
+          .then(() => {
+            if (!package_json.files) return Promise.resolve();
+            else {
+              const missing = _.find(package_json.files, filename => !fs.existsSync(path.join(process.cwd(), filename)));
+              return missing ? Promise.reject(`File: ${missing} is missing`) : Promise.resolve();
+            }
+          })
+          // update packages
+          .then(() => {
+            return new Promise(function(resolve, reject) {
+              exec('npm update --no-save', (err, stderr) => {
+                if (err) reject(err);
+                if (stderr) reject(stderr);
+                else resolve();
+              });
+            });
+          })
+          .then(() => getApiInfo())
+          // get branches
+          .then(_api_info => {
+            // console.log('\n');
+            api_info = _api_info;
+            if (!api_info.apiId) console.log(colors.green('Not used by any API'));
+            else if (!api_info.stageNames || api_info.stageNames.length === 0) console.log(colors.green('Not used by any Stage'));
+            else {
+              console.log(colors.blue('Used in stages:'));
+              api_info.stageNames.forEach(function(stageName) {
+                console.log(colors.cyan(stageName));
+              });
+            }
+
+            return getBranches();
+          })
+          // init api/alias info in package.json
+          .then(res => {
+            alias = res.currentBranch;
+            otherBranches = res.otherBranches;
+            return initApiAlias();
+          })
+          .then(() => verifyCorrectAlias(alias))
+          // logs, get functionName
+          .then(aliasVerified => {
+            if (aliasVerified) console.log('Alias in package.json is correct');
+            else {
+              console.log(colors.red('Alias in package.json is not correct'));
+              if (args.publish) return Promise.reject('Alias should be the name of the current branch');
+              else console.log(colors.red('Alias should be the name of the current branch'));
+            }
+            return getFunctionName();
+          })
+          // zip folder
+          .then(_functionName => {
+            functionName = _functionName;
+            // console.log('localPath: ', localPath);
+            // console.log('functionName:', functionName);
+            return new Promise(function(resolve, reject) {
+              exec(`zip -r ${homedir}/${localPath}/${functionName}.zip . -x *.git*`, {
+                maxBuffer: 1e8
+              }, function(err, stdout, stderr) {
+                if (err) reject(err);
+                else if (stderr) reject(stderr);
+                else resolve();
+              });
+            });
+          })
+          // get zip
+          .then(() => {
+            console.log('Zip done..');
+            process.chdir(`${homedir}/${localPath}`);
+            return new JSZip.external.Promise(function(resolve, reject) {
+              fs.readFile(`${functionName}.zip`, function(err, data) {
+                if (err) reject(err);
+                else resolve(data);
+              });
+            });
+          })
+          .then(zip => {
+
+            if (args.s3) {
+              console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
+              if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null, account, bucket, s3_prefix);
+              else {
+                console.log('info.apiId: ', api_info.apiId);
+                console.log('info.stageNames: ', api_info.stageNames);
+                console.log('info.method:', api_info.method);
+
+                return uploadS3(functionName, zip, alias, api_info, account, bucket, s3_prefix);
+              }
+
+            } else {
+              console.log(`Uploading to ${args.publish ? colors.cyan(alias) : colors.cyan('$LATEST')}..`);
+              return lambda.updateFunctionCode({
+                  FunctionName: functionName,
+                  Publish: !!args.publish,
+                  ZipFile: zip
+                }).promise()
+                .then(res => {
+                  console.log('Upload done.');
+                  // console.log(res);
+                  const version = res.Version;
+                  // console.log(`Version: ${version}`);
+
+                  if (args.publish) {
+                    if ((!api_info || !api_info.apiId || !api_info.method || !api_info.stageNames || api_info.stageNames.length === 0 || !alias) && !package_json.no_api) return Promise.reject('Invalid api/alias info');
+                    else {
+                      // console.log('info.apiId: ', api_info.apiId);
+                      // console.log('info.stageNames: ', api_info.stageNames);
+                      // console.log('info.method:', api_info.method);
+
+                      return updateAlias(functionName, alias, version, api_info, account)
+                        .then(() => package_json.no_api ? Promise.resolve() : updateStageVariables(functionName, alias, api_info, account))
+                        .then(() => {
+                          console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
+                          if (otherBranches.length > 0) {
+                            console.log(colors.blue('Other Branches:'));
+                            otherBranches.forEach(function(branchName) {
+                              if (branchName[0] == branchName[0].toUpperCase()) console.log(colors.yellow(branchName));
+                              else console.log(branchName);
+
+                            });
+                          } else console.log(colors.yellow('No other branches'));
+
+                          return Promise.resolve();
+                        });
+                    }
+                  } else return updateAlias(functionName, 'dev', '$LATEST', api_info, account)
+                    .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info, account).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info, account)));
+                });
+            }
+          })
+          // if uploading to $LATEST, check dev stage variable of api to confirm dev alias is invoked
+          .then(() => {
+            if (args.publish || !api_info.apiId) return Promise.resolve();
+            else {
+              return getStageVariable(api_info.apiId, functionName, account)
+                .then(stageVariable => {
+                  if (stageVariable !== 'dev') {
+                    console.log('\n' + colors.red(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
+                    console.log('\n' + colors.red(`For tests on front end, set Stage Variable with name '${functionName}' equal to 'dev' in API GW, stage 'dev'`));
+                  } else console.log('\n' + colors.green(`Stage Variable in API GW Stage 'dev':${stageVariable}`));
+                  return Promise.resolve();
+                });
+            }
           });
       }
     })
     .then(() => {
       console.log('\n' + colors.green('Success'));
       if (args.logs) exec(`awslogs get /aws/lambda/${functionName} --watch`).stdout.pipe(process.stdout);
+      else process.exit();
     })
     .catch(err => {
       console.log(colors.red(err));
       process.exit(1);
-    }));
+    });
 
 }

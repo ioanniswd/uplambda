@@ -1,10 +1,6 @@
 "use strict";
 
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const lambda = new AWS.Lambda();
 
 /**
  * Gives permissions to API GW to invoke Lambda function
@@ -21,6 +17,10 @@ const lambda = new AWS.Lambda();
  * @return {Promise}
  */
 module.exports = function(functionName, name, api_info, account) {
+  AWS.config.update({
+    region: account.match(/^(.+):/)[1]
+  });
+  const lambda = new AWS.Lambda();
 
   // for dev permissions
   const apiId = api_info.apiId || '*';

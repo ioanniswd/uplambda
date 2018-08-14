@@ -1,13 +1,13 @@
 "use strict";
 
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const apigateway = new AWS.APIGateway();
 
 // name is the alias for the current version
-module.exports = function(functionName, name, api_info) {
+module.exports = function(functionName, name, api_info, account) {
+  AWS.config.update({
+    region: account.match(/^(.+):/)[1]
+  });
+  const apigateway = new AWS.APIGateway();
 
   const apiId = api_info.apiId;
   const stageNames = api_info.stageNames;

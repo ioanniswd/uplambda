@@ -1,14 +1,15 @@
 "use strict";
 
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const lambda = new AWS.Lambda();
 
 const _ = require('lodash');
 
 module.exports = (functionName, name, api_info, account) => {
+  AWS.config.update({
+    region: account.match(/^(.+):/)[1]
+  });
+  const lambda = new AWS.Lambda();
+
   // for dev permissions
   const apiId = api_info.apiId || '*';
   const apiResourceName = api_info.resourceName || functionName.toLowerCase();

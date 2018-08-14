@@ -1,154 +1,82 @@
-## Modules
+# Uplambda
 
-<dl>
-<dt><a href="#module_createAlias">createAlias</a></dt>
-<dd><p>Create Lambda Alias</p>
-</dd>
-<dt><a href="#module_getApiInfo">getApiInfo</a></dt>
-<dd><p>Get api info for branch</p>
-</dd>
-<dt><a href="#module_getBranches">getBranches</a></dt>
-<dd><p>Return info for branches</p>
-</dd>
-<dt><a href="#module_getFunctionName">getFunctionName</a></dt>
-<dd><p>Get Lambda name</p>
-</dd>
-<dt><a href="#module_Uplambda">Uplambda</a></dt>
-<dd><p>Uploads lambda to AWS and updates API GW stage variables and permission</p>
-</dd>
-<dt><a href="#module_updateAPIGWPolicy">updateAPIGWPolicy</a></dt>
-<dd><p>Gives permissions to API GW to invoke Lambda function</p>
-</dd>
-<dt><a href="#module_updateAlias">updateAlias</a></dt>
-<dd><p>Update lambda alias</p>
-</dd>
-<dt><a href="#module_uploadS3">uploadS3</a></dt>
-<dd><p>Uploads zip to S3 bucket.</p>
-</dd>
-</dl>
+CLI tool to upload code to an AWS Lambda Function and handle AWS API Gateway and permissions
 
-<a name="module_createAlias"></a>
+## Installation
 
-## createAlias
-Create Lambda Alias
+`npm install -g uplambda`
 
-<a name="exp_module_createAlias--module.exports"></a>
+### Prerequisites
 
-### module.exports(functionName, name, version, apiInfo) ⇒ <code>Promise</code> ⏏
-Create a new alias for the last version published for lambda and assigns
-permissions to the appropriate API GW resource for that alias
+A config file is required, .uplambda.json in the home directory. Run "uplambda --accounts --add" to init.
 
-**Kind**: Exported function  
-**Returns**: <code>Promise</code> - Update Api GW Policy response  
+[git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git): The name of the current branch is used to verify that package.json API Gateway parameters are valid. More details can be found later on.
 
-| Param | Type | Description |
-| --- | --- | --- |
-| functionName | <code>string</code> | name of lambda function and current branch |
-| name | <code>string</code> | the name/alias to be given to the new lambda version |
-| version | <code>string</code> | the most recent version which was just published |
-| apiInfo | <code>object</code> | Api info found in package json. Used with updateAPIGWPolicy |
+[aws-cli](https://github.com/aws/aws-cli): Only config and credentials files are required, but installing the aws-cli to initialize them is easier.
 
-<a name="module_getApiInfo"></a>
+[awslogs](https://github.com/jorgebastida/awslogs): Used with logs.
 
-## getApiInfo
-Get api info for branch
+A role with permissions for AWS Lambda and API Gateway to be able to update lambda code and version, and update API Gateway permissions and stage variables.
 
-<a name="exp_module_getApiInfo--module.exports"></a>
+## Conventions
 
-### module.exports() ⇒ <code>Promise</code> ⏏
-Get Api Id and Stage Name(s)
+There are certain attributes in package.json that are required to handle versions and permissions. If not found, they are initialized as empty when running `uplambda`. When running `uplambda` (uploading to `$LATEST`/`dev`) those attributes are not required, but no permissions will be added if `api` attribute is not found or empty.
 
-**Kind**: Exported function  
-**Returns**: <code>Promise</code> - apiId and stageNames  
-<a name="module_getBranches"></a>
+The name of the current branch must be the same as `lambdaAlias` attribute found in package.json. If uploading to `$LATEST`/`dev`(no `--uplambda`) only a warning appears. If publishing to a version, the upload fails.
 
-## getBranches
-Return info for branches
+Each Lambda Function is linked to an API Gateway api resource. Resource name must be equal to Lambda Function name toLowerCase.
 
-<a name="exp_module_getBranches--module.exports"></a>
+If lambda version being invoked is `$LATEST`, `--publish` is not needed. Simply run `uplambda`. No permissions are required either. When uploading to `$LATEST`, alias `dev` is created, if not found, and
+assigned to `$LATEST`.
 
-### module.exports() ⇒ <code>Promise</code> ⏏
-Returns the current branch, which is used as the name/alias and the rest
-of the branches just in case.
+If lambda version being invoked is a published version with an alias(even `dev` which references `$LATEST`), api info in package.json is required. The Lambda Function name in API Gateway method should have the following format: `lambda_function_name:${stageVariables.lambda_function_name}`. This way, only the stage variable needs to change for each stage, and api can be deployed to multiple stages.
 
-**Kind**: Exported function  
-**Returns**: <code>Promise</code> - currentBranch and otherBranches  
-<a name="module_getFunctionName"></a>
+## Examples
 
-## getFunctionName
-Get Lambda name
+### --accounts
 
-<a name="exp_module_getFunctionName--module.exports"></a>
+`uplambda --accounts --add` Creates/Updates an account and inits .uplambda.json file, if not found.
 
-### module.exports() ⇒ <code>string</code> ⏏
-Get Lambda name using package.json name attribute.
+`uplambda --accounts --delete account_alias` Deletes an existing account from the configuration file. If the account is not found, returns an error.
 
-**Kind**: Exported function  
-**Returns**: <code>string</code> - Lambda function name  
-<a name="module_Uplambda"></a>
+`uplambda --accounts --list` Lists all accounts.
 
-## Uplambda
-Uploads lambda to AWS and updates API GW stage variables and permission
+`uplambda --accounts --use account_alias` Deactivates all other accounts and activates account_alias
 
-<a name="module_updateAPIGWPolicy"></a>
+### Usage
 
-## updateAPIGWPolicy
-Gives permissions to API GW to invoke Lambda function
+`uplambda` Uploads code to AWS Lambda Function ($LATEST) with name the name in package.json. If AWS API Gateway parameters are found, updates policy for API resource with same name as the Lambda Function(toLowerCase). If no API parameters are found, inits empty API parameters in package.json.
 
-<a name="exp_module_updateAPIGWPolicy--module.exports"></a>
+`uplambda --logs` Uploads as usual and streams Lambda Function logs to the console using aws cli.
 
-### module.exports(functionName, name, callback, apiInfo) ⇒ <code>Promise</code> ⏏
-Gives permissions to resource named functionName.toLowerCase, to invoke Lambda
-function alias.
+`uplambda --publish` Uploads and publishes according to parameters in package.json. Updates API Gateway permissions accordingly. Example of filled API Gateway parameters can be found later on.
 
-**Kind**: Exported function  
+`uplambda --s3 [--publish]` Uploads through s3. A bucket and a lambda function are required to handle trigger and updates that are usually performed directly. Lambda Function will soon be uploaded as a different repo.
 
-| Param | Type | Description |
-| --- | --- | --- |
-| functionName | <code>string</code> | Lambda function name |
-| name | <code>string</code> | Branch name/lambda alias |
-| callback | <code>function</code> |  |
-| apiInfo | <code>object</code> | Api info found in package json |
+### AWS API Gateway parameters
 
-<a name="module_updateAlias"></a>
+    {
+      "name": "lambda_function_name",
+      "version": "4.2.2",
+      "description": "",
+      "scripts": {
+        "test": "./node_modules/.bin/mocha --reporter spec"
+      },
+      "author": "",
+      "license": "ISC",
+      "dependencies": {
+        "aws-sdk": "2.186.0"
+      },
+      "api": {
+        "apiId": "4r7z01q51bg", <- API Gateway api id (found in a parenthesis after api name in API Gateway panel).
+        "stageNames": [
+          "testing" <- API Gateway stage names where there is a resource invoking the function
+        ],
+        "method": "POST" <- Resource method which invokes the function
+      },
+      "lambdaAlias": "production",  <- Used to make sure we are in the right branch. Also used as alias for lambda function version.
+    }
 
-## updateAlias
-Update lambda alias
+When running `uplambda`, code is uploaded to `$LATEST` and permission are updated for lambda alias `dev`, which is used as an alias for `$LATEST` version. No API Gateway stage variables are updated.
 
-<a name="exp_module_updateAlias--module.exports"></a>
-
-### module.exports(functionName, name, version, apiInfo) ⇒ <code>Promise</code> ⏏
-Updates alias for lambda with name the name of the package, for version
-given
-
-**Kind**: Exported function  
-**Returns**: <code>Promise</code> - Lambda update response  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| functionName | <code>string</code> | Lambda function name |
-| name | <code>string</code> | The name/alias given to the latest version |
-| version | <code>string</code> | The latest version of Lambda function published |
-| apiInfo | <code>object</code> | Api info found in package json. Used with create alias |
-
-<a name="module_uploadS3"></a>
-
-## uploadS3
-Uploads zip to S3 bucket.
-
-<a name="exp_module_uploadS3--module.exports"></a>
-
-### module.exports(name) ⇒ <code>Promise</code> ⏏
-Uploads zip file to S3 bucket uplambda
-which trigger a lambda function that
-updates the code of the function with
-the given name. Currently only works for
-latest.
-
-**Kind**: Exported function  
-**Returns**: <code>Promise</code> - S3 upload response message  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| name | <code>string</code> | Name of the lambda function and zip file |
-
+When running `uplambda --publish`, code is uploaded to `$LATEST`, a new Lambda Function version is published and `lambdaAlias`(which must be the same as the current branch name) is used to create/update an alias for that version. Permissions are updated accordingly for API Gateway resource method which invokes lambda function. An API Gateway stage variable with Name the Lambda Function name is created/updated to have value the same as `lambdaAlias`.

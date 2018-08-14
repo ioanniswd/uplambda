@@ -1,11 +1,6 @@
 "use strict";
 
-
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const lambda = new AWS.Lambda();
 
 const createAlias = require('./createAlias');
 
@@ -24,7 +19,11 @@ const createAlias = require('./createAlias');
  * @param  {object} apiInfo  Api info found in package json. Used with create alias
  * @return {Promise}              Lambda update response
  */
-module.exports = function(functionName, name, version, api_info) {
+module.exports = function(functionName, name, version, api_info, account) {
+  AWS.config.update({
+    region: account.match(/^(.+):/)[1]
+  });
+  const lambda = new AWS.Lambda();
 
   if (!version) return Promise.reject('Invalid version');
   else return lambda.updateAlias({
@@ -33,7 +32,7 @@ module.exports = function(functionName, name, version, api_info) {
       FunctionVersion: version.toString()
     }).promise()
     .catch(err => {
-      if (err.code == 'ResourceNotFoundException' && err.message.indexOf('Alias') !== -1) return createAlias(functionName, name, version, api_info);
+      if (err.code == 'ResourceNotFoundException' && err.message.indexOf('Alias') !== -1) return createAlias(functionName, name, version, api_info, account);
       else return Promise.reject(err);
     });
 };

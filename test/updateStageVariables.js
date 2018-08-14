@@ -7,7 +7,16 @@ const expect = chai.expect;
 
 const updateStageVariables = require('../updateStageVariables');
 
+const homedir = require('os').homedir();
+const fs = require('fs');
+
 describe('Update stage variables module', function() {
+  let account;
+
+  before(function() {
+    const tmp_accounts = JSON.parse(fs.readFileSync(homedir + '/.uplambda.json', 'utf-8'));
+    account = tmp_accounts.test_account.account;
+  });
 
   it('updates stage variables succesfully', function() {
     return expect(updateStageVariables('uplambda', 'versionAlias', {
@@ -16,6 +25,6 @@ describe('Update stage variables module', function() {
         'prod',
         'prodNew'
       ]
-    })).to.eventually.be.an('array');
+    }, account)).to.eventually.equal(undefined);
   });
 });

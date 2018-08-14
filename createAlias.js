@@ -1,10 +1,6 @@
 "use strict";
 
 const AWS = require('aws-sdk');
-AWS.config.update({
-  region: 'eu-west-1'
-});
-const lambda = new AWS.Lambda();
 
 const updateAPIGWPolicy = require('./updateAPIGWPolicy');
 
@@ -22,7 +18,11 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
  * @param  {object} apiInfo  Api info found in package json. Used with updateAPIGWPolicy
  * @return {Promise}              Update Api GW Policy response
  */
-module.exports = function(functionName, name, version, api_info) {
+module.exports = function(functionName, name, version, api_info, account) {
+  AWS.config.update({
+    region: account.match(/^(.+):/)[1]
+  });
+  const lambda = new AWS.Lambda();
 
   if (!version) return Promise.reject('Invalid version');
   else return lambda.createAlias({
@@ -30,5 +30,5 @@ module.exports = function(functionName, name, version, api_info) {
       FunctionVersion: version.toString(),
       Name: name
     }).promise()
-    .then(() => (api_info && api_info.apiId) ? updateAPIGWPolicy(functionName, name, api_info) : Promise.resolve());
+    .then(() => (api_info && api_info.apiId) ? updateAPIGWPolicy(functionName, name, api_info, account) : Promise.resolve());
 };
