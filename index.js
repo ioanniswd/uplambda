@@ -67,6 +67,8 @@ if (args.v || args.version) {
       let account;
       let bucket;
       let s3_prefix;
+      let aws_access_key_id;
+      let aws_secret_access_key;
 
       const tmp_accounts = _.filter(config, {
         active: true
@@ -87,22 +89,42 @@ if (args.v || args.version) {
 
         } else {
           let account_name;
-          let account;
-          let active = false;
-          let bucket;
-          let s3_prefix = '';
 
           return prompt('account alias/name(e.g. my_project_account): ')
             .then(res => {
               if (!res) return Promise.reject('Invalid account name.');
 
               account_name = res;
+
+              if (!config[account_name]) {
+                config[account_name] = {
+                  account: '',
+                  active: false,
+                  bucket: '',
+                  s3_prefix: '',
+                  aws_access_key_id: '',
+                  aws_secret_access_key: ''
+                };
+              }
+
               return prompt('account arn(region:account_number, e.g. eu-west-1:1234567890): ');
             })
             .then(res => {
-              if (!res || !res.match(/^[a-z]{2}-[a-z0-9]+-\d{1,2}:\d+$/)) return Promise.reject('Invalid account arn, must match /^[a-z]{2}-[a-z0-9]+-\\d{1, 2}:\\d+$/.');
+              if (!config[account_name].account && (!res || !res.match(/^[a-z]{2}-[a-z0-9]+-\d{1,2}:\d+$/))) return Promise.reject('Invalid account arn, must match /^[a-z]{2}-[a-z0-9]+-\\d{1, 2}:\\d+$/.');
 
-              account = res;
+              if (res) config[account_name].account = res;
+              return prompt('aws_access_key_id: ');
+            })
+            .then(res => {
+              if (!config[account_name].aws_access_key_id && !res) return Promise.reject('Invalid aws_access_key_id');
+
+              if (res) config[account_name].aws_access_key_id = res;
+              return prompt('aws_secret_access_key: ');
+            })
+            .then(res => {
+              if (!config[account_name].aws_secret_access_key && !res) return Promise.reject('Invalid aws_secret_access_key');
+
+              if (res) config[account_name].aws_secret_access_key = res;
               return prompt('set account as active?(y/n): ');
             })
             .then(res => {
@@ -112,28 +134,22 @@ if (args.v || args.version) {
                   item.active = false;
                 });
 
-                active = true;
+                config[account_name].active = true;
               }
 
               return prompt('S3 bucket used with updates via S3 (Optional): ');
             })
             .then(res => {
-              if (res) bucket = res;
+              if (res) config[account_name].bucket = res;
 
               return prompt('Set S3 item prefix (Optional): ');
             })
             .then(res => {
               if (res) {
                 if (res[res.length - 1] !== '/') res += '/';
-                s3_prefix = res;
-              }
+                config[account_name].s3_prefix = res;
 
-              config[account_name] = {
-                account: account,
-                active: active,
-                bucket: bucket,
-                s3_prefix: s3_prefix
-              };
+              } else config[account_name].s3_prefix = '';
 
               return fs.writeFileSync(homedir + '/.uplambda.json', JSON.stringify(config, null, 2));
             });
@@ -160,12 +176,17 @@ if (args.v || args.version) {
           account = tmp_accounts[0].account;
           bucket = tmp_accounts[0].bucket;
           s3_prefix = tmp_accounts[0].s3_prefix;
+          aws_access_key_id = tmp_accounts[0].aws_access_key_id;
+          aws_secret_access_key = tmp_accounts[0].aws_secret_access_key;
         }
 
-        AWS.config.update({
+        const aws_config = {
+          accessKeyId: aws_access_key_id,
+          secretAccessKey: aws_secret_access_key,
           region: account.match(/^(.+):/)[1]
-        });
-        const lambda = new AWS.Lambda();
+        };
+
+        const lambda = new AWS.Lambda(aws_config);
 
         return new Promise(function(resolve, reject) {
             // check js files for deps
@@ -287,13 +308,13 @@ if (args.v || args.version) {
 
             if (args.s3) {
               console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
-              if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null, account, bucket, s3_prefix);
+              if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null, account, bucket, s3_prefix, aws_config);
               else {
                 console.log('info.apiId: ', api_info.apiId);
                 console.log('info.stageNames: ', api_info.stageNames);
                 console.log('info.method:', api_info.method);
 
-                return uploadS3(functionName, zip, alias, api_info, account, bucket, s3_prefix);
+                return uploadS3(functionName, zip, alias, api_info, account, bucket, s3_prefix, aws_config);
               }
 
             } else {
@@ -316,8 +337,8 @@ if (args.v || args.version) {
                       // console.log('info.stageNames: ', api_info.stageNames);
                       // console.log('info.method:', api_info.method);
 
-                      return updateAlias(functionName, alias, version, api_info, account)
-                        .then(() => package_json.no_api ? Promise.resolve() : updateStageVariables(functionName, alias, api_info, account))
+                      return updateAlias(functionName, alias, version, api_info, account, aws_config)
+                        .then(() => package_json.no_api ? Promise.resolve() : updateStageVariables(functionName, alias, api_info, account, aws_config))
                         .then(() => {
                           console.log(colors.blue('Current Branch/Lambda Alias:'), colors.green(alias));
                           if (otherBranches.length > 0) {
@@ -332,8 +353,8 @@ if (args.v || args.version) {
                           return Promise.resolve();
                         });
                     }
-                  } else return updateAlias(functionName, 'dev', '$LATEST', api_info, account)
-                    .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info, account).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info, account)));
+                  } else return updateAlias(functionName, 'dev', '$LATEST', api_info, account, aws_config)
+                    .then(() => package_json.no_api ? Promise.resolve() : checkLambdaPolicy(functionName, 'dev', api_info, account, aws_config).then(found => found ? Promise.resolve() : updateAPIGWPolicy(functionName, 'dev', api_info, account, aws_config)));
                 });
             }
           })
@@ -341,7 +362,7 @@ if (args.v || args.version) {
           .then(() => {
             if (args.publish || !api_info.apiId) return Promise.resolve();
             else {
-              return getStageVariable(api_info.apiId, functionName, account)
+              return getStageVariable(api_info.apiId, functionName, account, aws_config)
                 .then(stageVariable => {
                   if (stageVariable !== 'dev') {
                     console.log('\n' + colors.red(`Stage Variable in API GW Stage 'dev':${stageVariable}`));

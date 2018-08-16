@@ -2,12 +2,10 @@
 
 const AWS = require('aws-sdk');
 
-module.exports = function(apiId, functionName, account) {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const apigw = new AWS.APIGateway();
+module.exports = function(apiId, functionName, account, aws_config) {
+  const apigw = new AWS.APIGateway(aws_config);
 
+  console.log('stage');
   return apigw.getStage({
       restApiId: apiId,
       stageName: 'dev'

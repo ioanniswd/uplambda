@@ -9,6 +9,8 @@ module.exports = function() {
         else {
           data = JSON.parse(data);
           // console.log('data:', data);
+          if (!data.no_api && data.no_api !== false) data.no_api = false;
+
           if (!data.api) {
             data.api = {
               apiId: null,

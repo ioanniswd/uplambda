@@ -12,10 +12,16 @@ const fs = require('fs');
 
 describe('Update stage variables module', function() {
   let account;
+  let aws_config;
 
   before(function() {
     const tmp_accounts = JSON.parse(fs.readFileSync(homedir + '/.uplambda.json', 'utf-8'));
     account = tmp_accounts.test_account.account;
+    aws_config = {
+      accessKeyId: tmp_accounts.test_account.aws_access_key_id,
+      secretAccessKey: tmp_accounts.test_account.aws_secret_access_key,
+      region: account.match(/^(.+):/)[1]
+    };
   });
 
   it('updates stage variables succesfully', function() {
@@ -25,6 +31,6 @@ describe('Update stage variables module', function() {
         'prod',
         'prodNew'
       ]
-    }, account)).to.eventually.equal(undefined);
+    }, account, aws_config)).to.eventually.equal(undefined);
   });
 });

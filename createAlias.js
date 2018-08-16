@@ -18,11 +18,8 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
  * @param  {object} apiInfo  Api info found in package json. Used with updateAPIGWPolicy
  * @return {Promise}              Update Api GW Policy response
  */
-module.exports = function(functionName, name, version, api_info, account) {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const lambda = new AWS.Lambda();
+module.exports = function(functionName, name, version, api_info, account, aws_config) {
+  const lambda = new AWS.Lambda(aws_config);
 
   if (!version) return Promise.reject('Invalid version');
   else return lambda.createAlias({
@@ -30,5 +27,5 @@ module.exports = function(functionName, name, version, api_info, account) {
       FunctionVersion: version.toString(),
       Name: name
     }).promise()
-    .then(() => (api_info && api_info.apiId) ? updateAPIGWPolicy(functionName, name, api_info, account) : Promise.resolve());
+    .then(() => (api_info && api_info.apiId) ? updateAPIGWPolicy(functionName, name, api_info, account, aws_config) : Promise.resolve());
 };

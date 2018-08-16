@@ -4,11 +4,8 @@ const AWS = require('aws-sdk');
 
 const _ = require('lodash');
 
-module.exports = (functionName, name, api_info, account) => {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const lambda = new AWS.Lambda();
+module.exports = (functionName, name, api_info, account, aws_config) => {
+  const lambda = new AWS.Lambda(aws_config);
 
   // for dev permissions
   const apiId = api_info.apiId || '*';

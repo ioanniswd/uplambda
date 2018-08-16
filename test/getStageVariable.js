@@ -13,13 +13,19 @@ describe('Get Stage Variables module', function() {
   this.timeout(5000);
 
   let account;
+  let aws_config;
 
   before(function() {
     const tmp_accounts = JSON.parse(fs.readFileSync(homedir + '/.uplambda.json', 'utf-8'));
     account = tmp_accounts.test_account.account;
+    aws_config = {
+      accessKeyId: tmp_accounts.test_account.aws_access_key_id,
+      secretAccessKey: tmp_accounts.test_account.aws_secret_access_key,
+      region: account.match(/^(.+):/)[1]
+    };
   });
 
   it('returns dev as stage variable', function() {
-    return expect(getStageVariable('7q0dbitueg', 'saveCard', account)).to.eventually.equal('dev');
+    return expect(getStageVariable('7q0dbitueg', 'saveCard', account, aws_config)).to.eventually.equal('dev');
   });
 });

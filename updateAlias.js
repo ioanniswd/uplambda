@@ -19,11 +19,8 @@ const createAlias = require('./createAlias');
  * @param  {object} apiInfo  Api info found in package json. Used with create alias
  * @return {Promise}              Lambda update response
  */
-module.exports = function(functionName, name, version, api_info, account) {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const lambda = new AWS.Lambda();
+module.exports = function(functionName, name, version, api_info, account, aws_config) {
+  const lambda = new AWS.Lambda(aws_config);
 
   if (!version) return Promise.reject('Invalid version');
   else return lambda.updateAlias({
@@ -32,7 +29,7 @@ module.exports = function(functionName, name, version, api_info, account) {
       FunctionVersion: version.toString()
     }).promise()
     .catch(err => {
-      if (err.code == 'ResourceNotFoundException' && err.message.indexOf('Alias') !== -1) return createAlias(functionName, name, version, api_info, account);
+      if (err.code == 'ResourceNotFoundException' && err.message.indexOf('Alias') !== -1) return createAlias(functionName, name, version, api_info, account, aws_config);
       else return Promise.reject(err);
     });
 };

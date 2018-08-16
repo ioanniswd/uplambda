@@ -3,11 +3,8 @@
 const AWS = require('aws-sdk');
 
 // name is the alias for the current version
-module.exports = function(functionName, name, api_info, account) {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const apigateway = new AWS.APIGateway();
+module.exports = function(functionName, name, api_info, account, aws_config) {
+  const apigateway = new AWS.APIGateway(aws_config);
 
   const apiId = api_info.apiId;
   const stageNames = api_info.stageNames;

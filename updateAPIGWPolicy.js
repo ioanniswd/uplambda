@@ -16,11 +16,8 @@ const AWS = require('aws-sdk');
  * @param  {object} apiInfo  Api info found in package json
  * @return {Promise}
  */
-module.exports = function(functionName, name, api_info, account) {
-  AWS.config.update({
-    region: account.match(/^(.+):/)[1]
-  });
-  const lambda = new AWS.Lambda();
+module.exports = function(functionName, name, api_info, account, aws_config) {
+  const lambda = new AWS.Lambda(aws_config);
 
   // for dev permissions
   const apiId = api_info.apiId || '*';

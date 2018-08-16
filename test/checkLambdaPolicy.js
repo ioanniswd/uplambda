@@ -12,15 +12,18 @@ const homedir = require('os').homedir();
 
 describe('checkLambdaPolicy', function() {
   let account;
-  before(function(done) {
-    fs.readFile(homedir + '/.uplambda', 'utf-8', function(err, data) {
-      if (err) done(err);
-      else {
-        account = JSON.parse(data).account;
-        done();
-      }
-    });
+  let aws_config;
+
+  before(function() {
+    const tmp_accounts = JSON.parse(fs.readFileSync(homedir + '/.uplambda.json', 'utf-8'));
+    account = tmp_accounts.test_account.account;
+    aws_config = {
+      accessKeyId: tmp_accounts.test_account.aws_access_key_id,
+      secretAccessKey: tmp_accounts.test_account.aws_secret_access_key,
+      region: account.match(/^(.+):/)[1]
+    };
   });
+
 
   it('returns true for existing policy', function() {
     return expect(checkLambdaPolicy('update_viber_status_from_q', 'dev', {
@@ -28,7 +31,7 @@ describe('checkLambdaPolicy', function() {
         'prod',
         'prodNew'
       ]
-    }, account)).to.eventually.equal(true);
+    }, account, aws_config)).to.eventually.equal(true);
   });
 
   it('returns false for non existent policy', function() {
@@ -38,6 +41,6 @@ describe('checkLambdaPolicy', function() {
         'prod',
         'prodNew'
       ]
-    }, account)).to.eventually.equal(false);
+    }, account, aws_config)).to.eventually.equal(false);
   });
 });
