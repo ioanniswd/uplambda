@@ -90,9 +90,9 @@ if (args.v || args.version) {
         } else {
           let account_name;
 
-          return prompt('account alias/name(e.g. my_project_account): ')
+          return prompt('account alias/name(any name, no spaces. e.g. my_project_account): ')
             .then(res => {
-              if (!res) return Promise.reject('Invalid account name.');
+              if (!res || !res.match(/^\w+$/)) return Promise.reject('Invalid account name. Must satisfy /^\\w+$/');
 
               account_name = res;
 
