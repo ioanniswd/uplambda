@@ -26,7 +26,7 @@ describe('Create Alias module', function() {
 
 
   it('creates a non-existing alias succesfully', function() {
-    return expect(createAlias('helloClaudia', 'a' + Date.now().toString(), 3, undefined, account, aws_config)).to.eventually.equal(undefined);
+    return expect(createAlias('test_uplambda_function', 'a' + Date.now().toString(), 1, undefined, account, aws_config)).to.eventually.equal(undefined);
   });
 
 });

@@ -26,11 +26,10 @@ describe('Update stage variables module', function() {
   });
 
   it('updates stage variables succesfully', function() {
-    return expect(updateStageVariables('uplambda', 'versionAlias', {
-      apiId: 'qx8ef5d6mb',
+    return expect(updateStageVariables('version_alias', Date.now().toString(), {
+      apiId: '08zgeit8mg',
       stageNames: [
-        'prod',
-        'prodNew'
+        'dev'
       ]
     }, account, aws_config)).to.eventually.equal(undefined);
   });

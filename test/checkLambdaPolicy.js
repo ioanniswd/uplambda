@@ -26,20 +26,19 @@ describe('checkLambdaPolicy', function() {
 
 
   it('returns true for existing policy', function() {
-    return expect(checkLambdaPolicy('update_viber_status_from_q', 'dev', {
+    return expect(checkLambdaPolicy('hello', 'production', {
+      apiId: '08zgeit8mg',
       stageNames: [
-        'prod',
-        'prodNew'
+        'production'
       ]
     }, account, aws_config)).to.eventually.equal(true);
   });
 
   it('returns false for non existent policy', function() {
-    return expect(checkLambdaPolicy('update_viber_status_from_q', 'dev', {
-      apiId: 'qx8ef5d6mb',
+    return expect(checkLambdaPolicy('hello', 'production', {
+      apiId: 'dt4vx1d6na',
       stageNames: [
-        'prod',
-        'prodNew'
+        'production'
       ]
     }, account, aws_config)).to.eventually.equal(false);
   });

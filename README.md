@@ -83,3 +83,16 @@ When running `uplambda --publish`, code is uploaded to `$LATEST`, a new Lambda F
 ## Common mistakes
 
 When uploading the same function to multiple accounts, make sure api and alias info are correct before uploading. Errors about 'Invalid stage identifier' mean API with those parameters was not found.
+
+## Contributing
+
+
+### Running the tests
+You will need an account in .uplambda.json config file named `test_account`. To init, run `uplambda --account --add`.
+A Lambda Function named `test_uplambda_function` in your AWS account whose credentials are in `test_account`. A published version of the `test_uplambda_function`(version 1).
+
+An API Gateway API, published to a stage named `dev`. A stage variable in the `dev` stage named `test_uplambda_function` with value `dev`. A stage variable in the same `dev` stage named `version_alias`, with any value.
+
+
+
+Run `npm test`

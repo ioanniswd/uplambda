@@ -26,6 +26,6 @@ describe('Get Stage Variables module', function() {
   });
 
   it('returns dev as stage variable', function() {
-    return expect(getStageVariable('7q0dbitueg', 'saveCard', account, aws_config)).to.eventually.equal('dev');
+    return expect(getStageVariable('08zgeit8mg', 'test_uplambda_function', account, aws_config)).to.eventually.equal('dev');
   });
 });

@@ -27,12 +27,12 @@ describe('Update alias module', function() {
   });
 
   it('updates an existing alias', function() {
-    return expect(updateAlias('helloClaudia', 'prod', 1, undefined, account, aws_config)).to.eventually.be.an('object');
+    return expect(updateAlias('test_uplambda_function', 'prod', 1, undefined, account, aws_config)).to.eventually.be.an('object');
   });
 
   it('creates a non-existing alias', function() {
-    return expect(updateAlias('helloClaudia', 'a' + Date.now().toString(), 3, {
-      apiId: 'qx8ef5d6mb'
+    return expect(updateAlias('test_uplambda_function', 'a' + Date.now().toString(), 1, {
+      apiId: '08zgeit8mg'
     }, account, aws_config)).to.eventually.be.an('object');
   });
 
