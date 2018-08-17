@@ -20,7 +20,6 @@ const updateAPIGWPolicy = require('./updateAPIGWPolicy');
  */
 module.exports = function(functionName, name, version, api_info, account, aws_config) {
   const lambda = new AWS.Lambda(aws_config);
-
   if (!version) return Promise.reject('Invalid version');
   else return lambda.createAlias({
       FunctionName: functionName,

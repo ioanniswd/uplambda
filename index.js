@@ -216,16 +216,20 @@ if (args.v || args.version) {
           })
           // check installed modules for missing deps
           .then(() => {
-            return Promise.all(Object.keys(package_json.dependencies).map(dep => {
-              try {
-                console.log('dep:', dep);
-                if (dep == 'aws-sdk') return Promise.resolve();
-                else return require.resolve(process.cwd() + '/node_modules/' + dep);
+            if (package_json.dependencies) {
 
-              } catch (err) {
-                return Promise.reject('Cannot find module: ' + dep);
-              }
-            }));
+              return Promise.all(Object.keys(package_json.dependencies).map(dep => {
+                try {
+                  console.log('dep:', dep);
+                  if (dep == 'aws-sdk') return Promise.resolve();
+                  else return require.resolve(process.cwd() + '/node_modules/' + dep);
+
+                } catch (err) {
+                  return Promise.reject('Cannot find module: ' + dep);
+                }
+              }));
+
+            } else return Promise.resolve();
           })
           // check if required files are in the folder
           .then(() => {

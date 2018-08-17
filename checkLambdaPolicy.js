@@ -16,15 +16,20 @@ module.exports = (functionName, name, api_info, account, aws_config) => {
       FunctionName: functionName,
       Qualifier: name
     }).promise()
+    .catch(err => err.code === 'ResourceNotFoundException' ? Promise.resolve() : Promise.reject(err))
     .then(res => {
-      const policy = JSON.parse(res.Policy);
+      let found = false;
 
-      const found = !!_.find(policy.Statement, st => st.Effect === 'Allow' &&
-        st.Action === 'lambda:InvokeFunction' &&
-        st.Resource === `arn:aws:lambda:${account}:function:${functionName}:${name}` &&
-        st.Condition && st.Condition.ArnLike &&
-        st.Condition.ArnLike['AWS:SourceArn'] === `arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName}`
-      );
+      if (res) {
+        const policy = JSON.parse(res.Policy);
+
+        found = !!_.find(policy.Statement, st => st.Effect === 'Allow' &&
+          st.Action === 'lambda:InvokeFunction' &&
+          st.Resource === `arn:aws:lambda:${account}:function:${functionName}:${name}` &&
+          st.Condition && st.Condition.ArnLike &&
+          st.Condition.ArnLike['AWS:SourceArn'] === `arn:aws:execute-api:${account}:${apiId}/*/${apiMethod}/${apiResourceName}`
+        );
+      }
 
       if (found) console.log('Policy exists not updating');
       else console.log('Policy not found, updating');

@@ -10,7 +10,7 @@ const homedir = require('os').homedir();
 const fs = require('fs');
 
 describe('Get Stage Variables module', function() {
-  this.timeout(5000);
+  this.timeout(15000);
 
   let account;
   let aws_config;

@@ -11,6 +11,8 @@ const fs = require('fs');
 const homedir = require('os').homedir();
 
 describe('Update alias module', function() {
+  this.timeout(10000);
+
   let account;
   let aws_config;
 

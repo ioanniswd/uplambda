@@ -11,6 +11,7 @@ const homedir = require('os').homedir();
 const fs = require('fs');
 
 describe('Update stage variables module', function() {
+  this.timeout(10000);
   let account;
   let aws_config;
 
