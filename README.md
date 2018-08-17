@@ -73,7 +73,7 @@ If Lambda version being invoked is a published version with an alias(even `dev` 
         "method": "POST" <- Resource method which invokes the function
       },
       "lambdaAlias": "production",  <- Used to make sure we are in the right branch. Also used as alias for Lambda function version.
-      "no_api": false <- When publishing to a version, but no api is invoking Lambda
+      "no_api": false <- When publishing to a version, but no api is invoking Lambda, set to true
     }
 
 When running `uplambda`, code is uploaded to `$LATEST` and permission are updated for Lambda alias `dev`, which is used as an alias for `$LATEST` version. No API Gateway stage variables are updated.
