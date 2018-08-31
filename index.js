@@ -43,8 +43,6 @@ const args = minimist(process.argv.slice(2), {
 
 const localPath = 'localLambdas/';
 
-const package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
-
 if (args.v || args.version) {
   exec('npm show uplambda version', function(err, stdout, stderr) {
     if (err) throw err;
@@ -170,6 +168,8 @@ if (args.v || args.version) {
         return Promise.resolve();
 
       } else {
+        const package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
+
         if (tmp_accounts.length === 0) return Promise.reject(`Invalid ${homedir}/.uplambda.json. At least one account must be active at a time. Run "uplambda --account --use <your_account_alias>" to choose which account to enable`);
         if (tmp_accounts.length !== 1) return Promise.reject(`Invalid ${homedir}/.uplambda.json. Only one account can be active at a time. Run "uplambda --account --use <your_account_alias>" to choose which account to enable`);
         else {

@@ -6,9 +6,11 @@ CLI tool to upload code to an AWS Lambda Function and handle AWS API Gateway and
 
 `npm install -g uplambda`
 
-### Prerequisites
+### Prequisites
 
-A config file is required, .uplambda.json in the home directory. Run "uplambda --accounts --add" to init.
+A folder in the home directory named localLambdas. Uplambda does not as of yet create that folder.
+
+A config file is required, .uplambda.json in the home directory. Run "uplambda --account --add" to init.
 
 [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git): The name of the current branch is used to verify that package.json API Gateway parameters are valid. More details can be found later on.
 
@@ -17,6 +19,8 @@ A config file is required, .uplambda.json in the home directory. Run "uplambda -
 A user with permissions for AWS Lambda and API Gateway to be able to update Lambda code and version, and update API Gateway permissions and stage variables. You will be prompted for user's credentials from AWS IAM.
 
 ## Conventions
+
+Uplambda must be ran from a directory which has an `index.js` and a `package.json` file, along with the `node_modules` if any are installed.
 
 There are certain attributes in package.json that are required to handle versions and permissions. If not found, they are initialized as empty when running `uplambda`. When running `uplambda` (uploading to `$LATEST`/`dev`) those attributes are not required, but no permissions will be added if `api` attribute is not found or empty. Also if `no_api` attribute in package.json is set to `true`, api attributes are ignored.  
 
@@ -31,15 +35,15 @@ If Lambda version being invoked is a published version with an alias(even `dev` 
 
 ## Examples
 
-### --accounts
+### --account
 
-`uplambda --accounts --add` Creates/Updates an account and inits .uplambda.json file, if not found. If found, for attributes that are not to be updated, simply skip by leaving them empty when prompted.
+`uplambda --account --add` Creates/Updates an account and inits .uplambda.json file, if not found. If found, for attributes that are not to be updated, simply skip by leaving them empty when prompted.
 
-`uplambda --accounts --delete account_alias` Deletes an existing account from the configuration file. If the account is not found, returns an error.
+`uplambda --account --delete account_alias` Deletes an existing account from the configuration file. If the account is not found, returns an error.
 
-`uplambda --accounts --list` Lists all accounts.
+`uplambda --account --list` Lists all accounts.
 
-`uplambda --accounts --use account_alias` Deactivates all other accounts and activates account_alias
+`uplambda --account --use account_alias` Deactivates all other accounts and activates account_alias
 
 ### Usage
 
