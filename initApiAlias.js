@@ -10,6 +10,7 @@ module.exports = function() {
           data = JSON.parse(data);
           // console.log('data:', data);
           if (!data.no_api && data.no_api !== false) data.no_api = true;
+          if (!data.files) data.files = [];
 
           if (!data.api) {
             data.api = {
