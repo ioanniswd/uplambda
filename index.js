@@ -26,6 +26,7 @@ const initApiAlias = require('./initApiAlias');
 const getStageVariable = require('./getStageVariable');
 const depcheck = require('depcheck');
 const checkLambdaPolicy = require('./checkLambdaPolicy');
+const get_stack_name = require('./lib/get_stack_name');
 
 /**
  * Uploads lambda to AWS and updates API GW stage variables and permission
@@ -64,6 +65,8 @@ if (args.v || args.version) {
     }).then(config => {
       let account;
       let bucket;
+      let cloudformation_bucket;
+      let lambda_role;
       let s3_prefix;
       let aws_access_key_id;
       let aws_secret_access_key;
@@ -100,6 +103,8 @@ if (args.v || args.version) {
                   active: false,
                   bucket: '',
                   s3_prefix: '',
+                  cloudformation_bucket: '',
+                  lambda_role: '',
                   aws_access_key_id: '',
                   aws_secret_access_key: ''
                 };
@@ -149,6 +154,16 @@ if (args.v || args.version) {
 
               } else config[account_name].s3_prefix = '';
 
+              return prompt('Set S3 bucket used with cloudformation templates to update lambda code (Optional): ');
+            })
+            .then(res => {
+              if (res) config[account_name].cloudformation_bucket = res;
+
+              return prompt('Set lambda IAM role name (Optional, used with cloudformation): ');
+            })
+            .then(res => {
+              if (res) config[account_name].lambda_role = res;
+
               return fs.writeFileSync(homedir + '/.uplambda.json', JSON.stringify(config, null, 2));
             });
         }
@@ -167,7 +182,10 @@ if (args.v || args.version) {
         console.log(`\nAccount "${args.use}" was activated`);
         return Promise.resolve();
 
-      } else {
+      } else if (args.init) return initApiAlias();
+      else {
+        let stack;
+
         const package_json = JSON.parse(fs.readFileSync(process.cwd() + '/package.json', 'utf-8'));
 
         if (tmp_accounts.length === 0) return Promise.reject(`Invalid ${homedir}/.uplambda.json. At least one account must be active at a time. Run "uplambda --account --use <your_account_alias>" to choose which account to enable`);
@@ -175,6 +193,8 @@ if (args.v || args.version) {
         else {
           account = tmp_accounts[0].account;
           bucket = tmp_accounts[0].bucket;
+          cloudformation_bucket = tmp_accounts[0].cloudformation_bucket;
+          lambda_role = package_json.lambda_role || tmp_accounts[0].lambda_role;
           s3_prefix = tmp_accounts[0].s3_prefix;
           aws_access_key_id = tmp_accounts[0].aws_access_key_id;
           aws_secret_access_key = tmp_accounts[0].aws_secret_access_key;
@@ -300,6 +320,9 @@ if (args.v || args.version) {
           // get zip
           .then(() => {
             console.log('Zip done..');
+            // getting stack.json before changing cwd
+            if (fs.existsSync('cloudformation') && fs.existsSync('cloudformation/stack.json')) stack = fs.readFileSync('cloudformation/stack.json', 'utf-8');
+
             process.chdir(`${homedir}/${localPath}`);
             return new JSZip.external.Promise(function(resolve, reject) {
               fs.readFile(`${functionName}.zip`, function(err, data) {
@@ -310,7 +333,47 @@ if (args.v || args.version) {
           })
           .then(zip => {
 
-            if (args.s3) {
+            if (args.cloudformation) {
+              const cf = new AWS.CloudFormation(aws_config);
+
+              const stack_name = get_stack_name(functionName);
+
+              const stack_params = {
+                StackName: stack_name,
+                TemplateBody: stack,
+                Parameters: [{
+                    ParameterKey: 'LambdaFunctionName',
+                    ParameterValue: functionName
+                  },
+                  {
+                    ParameterKey: 'S3Bucket',
+                    ParameterValue: cloudformation_bucket
+                  },
+                  {
+                    ParameterKey: 'S3Key',
+                    ParameterValue: `${functionName}.zip`
+                  },
+                  {
+                    ParameterKey: 'Role',
+                    ParameterValue: `arn:aws:iam::${account.match(/:(\w+)$/)[1]}:role/${lambda_role}`
+                  }
+                ]
+              };
+              // console.log('stack_params:', stack_params);
+
+              console.log('Uploading with cloudformation');
+              return uploadS3(functionName, zip, null, null, account, cloudformation_bucket, '', aws_config)
+                .then(() => cf.createStack(stack_params).promise())
+                .then(() => cf.waitFor('stackCreateComplete', {
+                  StackName: stack_name
+                }).promise())
+                .catch(err => err.code === 'AlreadyExistsException' ? cf.updateStack(stack_params).promise()
+                  .then(() => cf.waitFor('stackUpdateComplete', {
+                    StackName: stack_name
+                  }).promise()) : Promise.reject(err));
+
+
+            } else if (args.s3) {
               console.log(`Uploading ${args.publish ? alias : '$LATEST'} to s3..`);
               if (!args.publish && !package_json.no_api) return uploadS3(functionName, zip, null, null, account, bucket, s3_prefix, aws_config);
               else {
