@@ -336,7 +336,7 @@ if (args.v || args.version) {
             if (args.cloudformation) {
               const cf = new AWS.CloudFormation(aws_config);
 
-              const stack_name = get_stack_name(functionName);
+              const stack_name = `Lambda${get_stack_name(functionName)}`;
 
               const stack_params = {
                 StackName: stack_name,
