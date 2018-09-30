@@ -40,9 +40,11 @@ module.exports = function() {
       new Promise(function(resolve) {
         const dir = 'cloudformation';
         const stack = 'stack.json';
+        const params = 'params.json';
 
         if (!fs.existsSync(dir)) fs.mkdirSync(dir);
         if (!fs.existsSync(`${dir}/${stack}`)) fs.writeFileSync(`${dir}/${stack}`, fs.readFileSync(__dirname + '/lib/stack.json', 'utf-8'));
+        if (!fs.existsSync(`${dir}/${params}`)) fs.writeFileSync(`${dir}/${params}`, fs.readFileSync(__dirname + '/lib/params.json', 'utf-8'));
 
         resolve();
       })

@@ -56,7 +56,17 @@ If Lambda version being invoked is a published version with an alias(even `dev` 
 
 `uplambda --s3 [--publish]` Uploads through s3\. A bucket and a Lambda function are required to handle trigger and updates that are usually performed directly. Lambda Function will soon be uploaded as a different repo.
 
-`uplambda --cloudformation` Uploads through s3 and creates/updates stack according to cloudformation template found in `cloudformation/stack.json`. To use, account attribute for `cloudformation` bucket must be set and either account attribute `lambda_role` or `package.json` attribute lambda_role must be set. Set a default `lambda_role` for the account and use `package.json` attribute for lambda with different role. Cannot be used to publish. For publish, use `uplambda --publish`.
+`uplambda --cloudformation` Uploads through s3 and creates/updates stack according to cloudformation template found in `cloudformation/stack.json`. Stack name is `Lambda${functionName}`, where functionName is the `name` in `package.json` in camel case. To use, account attribute for `cloudformation` bucket must be set and either account attribute `lambda_role` or `package.json` attribute `lambda_role` must be set. Set a default `lambda_role` for the account and use `package.json` attribute for lambdas with different role. Cannot be used to publish. For publish, use `uplambda --publish`. Parameters can be added to be used in the stack; either hard coded or through the use of file named `params.json` in the `cloudformation` folder. Do not forget to add all parameters in stack.json as well. Usually this file should be git ignored.
+
+### Example
+
+```
+// cloudformation/params.json
+  [{
+    "ParameterKey": "SomeParameter",
+    "ParameterValue": "someValue"
+  }]
+```
 
 ### AWS API Gateway parameters
 

@@ -38,6 +38,9 @@ let otherBranches;
 let functionName;
 let api_info;
 
+// used with cloudformation
+let private_params = [];
+
 const args = minimist(process.argv.slice(2), {
   boolean: ['logs', 'v', 'version', 's3', 'publish', 'f', 'force', 'account']
 });
@@ -323,6 +326,12 @@ if (args.v || args.version) {
             // getting stack.json before changing cwd
             if (fs.existsSync('cloudformation') && fs.existsSync('cloudformation/stack.json')) stack = fs.readFileSync('cloudformation/stack.json', 'utf-8');
 
+            try {
+              private_params = JSON.parse(fs.readFileSync('cloudformation/params.json'));
+            } catch (e) {
+              if (e.code !== 'ENOENT') throw e;
+            }
+
             process.chdir(`${homedir}/${localPath}`);
             return new JSZip.external.Promise(function(resolve, reject) {
               fs.readFile(`${functionName}.zip`, function(err, data) {
@@ -341,7 +350,7 @@ if (args.v || args.version) {
               const stack_params = {
                 StackName: stack_name,
                 TemplateBody: stack,
-                Parameters: [{
+                Parameters: private_params.concat([{
                     ParameterKey: 'LambdaFunctionName',
                     ParameterValue: functionName
                   },
@@ -357,7 +366,7 @@ if (args.v || args.version) {
                     ParameterKey: 'Role',
                     ParameterValue: `arn:aws:iam::${account.match(/:(\w+)$/)[1]}:role/${lambda_role}`
                   }
-                ]
+                ])
               };
               // console.log('stack_params:', stack_params);
 
