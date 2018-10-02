@@ -1,0 +1,135 @@
+{
+  "APIGatewayResource": {
+    "Type": "AWS::ApiGateway::Resource",
+    "Properties": {
+      "RestApiId": {
+        "Ref": "RestApiId"
+      },
+      "PathPart": {
+        "Ref": "APIGatewayResourcePath"
+      },
+      "ParentId": {
+        "Ref": "RootResourceId"
+      }
+    }
+  },
+  "APIGatewayMethod": {
+    "DependsOn": "APIGatewayResource",
+    "Type": "AWS::ApiGateway::Method",
+    "Properties": {
+      "HttpMethod": {
+        "Ref": "APIMethod"
+      },
+      "AuthorizationType": "NONE",
+      "ResourceId": {
+        "Ref": "APIGatewayResource"
+      },
+      "RestApiId": {
+        "Ref": "RestApiId"
+      },
+      "Integration": {
+        "Type": "AWS",
+        "IntegrationHttpMethod": {
+          "Ref": "APIMethod"
+        },
+        "Uri": {
+          "Fn::Join": ["", [
+            "arn:aws:apigateway:",
+            {
+              "Ref": "AWSRegion"
+            },
+            ":lambda:path/2015-03-31/functions/",
+            {
+              "Fn::GetAtt": [
+                "Lambda", "Arn"
+              ]
+            },
+            "/invocations"
+          ]]
+        },
+        "PassthroughBehavior": "WHEN_NO_TEMPLATES",
+        "IntegrationResponses": [{
+          "ResponseTemplates": {
+            "application/json": "$input.json('$.body')"
+          },
+          "ResponseParameters": {
+            "method.response.header.Link": "integration.response.body.headers.next"
+          },
+          "StatusCode": 200
+        }],
+        "RequestTemplates": {
+          "application/json": "$input.json('$.body')"
+        }
+      }
+    }
+  },
+  "Options": {
+    "DependsOn": "APIGatewayResource",
+    "Type": "AWS::ApiGateway::Method",
+    "Properties": {
+      "ResourceId": {
+        "Ref": "APIGatewayResource"
+      },
+      "RestApiId": {
+        "Ref": "RestApiId"
+      },
+      "AuthorizationType": "NONE",
+      "HttpMethod": "OPTIONS",
+      "Integration": {
+        "Type": "MOCK",
+        "IntegrationResponses": [{
+          "ResponseParameters": {
+            "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+            "method.response.header.Access-Control-Allow-Methods": "'GET,POST,OPTIONS'",
+            "method.response.header.Access-Control-Allow-Origin": "'*'"
+          },
+          "ResponseTemplates": {
+            "application/json": ""
+          },
+          "StatusCode": "200"
+        }],
+        "PassthroughBehavior": "NEVER",
+        "RequestTemplates": {
+          "application/json": "{\"statusCode\": 200}"
+        }
+      },
+      "MethodResponses": [{
+        "ResponseModels": {
+          "application/json": "Empty"
+        },
+        "ResponseParameters": {
+          "method.response.header.Access-Control-Allow-Headers": true,
+          "method.response.header.Access-Control-Allow-Methods": true,
+          "method.response.header.Access-Control-Allow-Origin": true
+        },
+        "StatusCode": "200"
+      }]
+    }
+  },
+  "APILambdaPermission": {
+    "DependsOn": "Lambda",
+    "Type": "AWS::Lambda::Permission",
+    "Properties": {
+      "Action": "lambda:InvokeFunction",
+      "FunctionName": {
+        "Fn::GetAtt": ["Lambda", "Arn"]
+      },
+      "Principal": "apigateway.amazonaws.com",
+      "SourceArn": {
+        "Fn::Join": ["", [
+          "arn:aws:execute-api:",
+          {
+            "Ref": "AWSRegion"
+          }, ":",
+          {
+            "Ref": "AccountId"
+          }, ":",
+          {
+            "Ref": "RestApiId"
+          },
+          "/*/*/*"
+        ]]
+      }
+    }
+  }
+}

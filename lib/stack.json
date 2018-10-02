@@ -18,6 +18,30 @@
     "Role": {
       "Description": "Role for lambda function",
       "Type": "String"
+    },
+    "RestApiId": {
+      "Description": "Attribute apiId found in package.json",
+      "Type": "String"
+    },
+    "APIGatewayResourcePath": {
+      "Description": "Lambda function name to lower case.",
+      "Type": "String"
+    },
+    "APIMethod": {
+      "Description": "POST, GET from package.json",
+      "Type": "String"
+    },
+    "AWSRegion": {
+      "Description": "Found in uplambda config",
+      "Type": "String"
+    },
+    "AccountId": {
+      "Description": "Found in uplambda config.",
+      "Type": "String"
+    },
+    "RootResourceId": {
+      "Description": "Root resource id for path \"/\" in API Gateway API.",
+      "Type": "String"
     }
   },
 

@@ -342,6 +342,7 @@ if (args.v || args.version) {
           })
           .then(zip => {
 
+            // TODO: add api info
             if (args.cloudformation) {
               const cf = new AWS.CloudFormation(aws_config);
 
@@ -369,6 +370,34 @@ if (args.v || args.version) {
                 ])
               };
               // console.log('stack_params:', stack_params);
+
+              if (!package_json.no_api) {
+                if (!api_info.apiId || !api_info.method || !api_info.RootResourceId) throw Error('Invalid api info in package.json.');
+                stack_params.Parameters.push(...[{
+                    ParameterKey: "RestApiId",
+                    ParameterValue: api_info.apiId
+                  }, {
+                    ParameterKey: "APIGatewayResourcePath",
+                    ParameterValue: functionName.toLowerCase()
+                  }, {
+                    ParameterKey: "APIMethod",
+                    ParameterValue: api_info.method
+                  }, {
+                    ParameterKey: "AWSRegion",
+                    ParameterValue: account.match(/^(.+):/)[1]
+                  },
+                  {
+                    ParameterKey: "RootResourceId",
+                    ParameterValue: api_info.RootResourceId
+                  },
+                  {
+                    ParameterKey: 'AccountId',
+                    ParameterValue: account.match(/:(\w+)$/)[1]
+                  }
+                ]);
+              }
+
+              console.log('stack_params:', stack_params);
 
               console.log('Uploading with cloudformation');
               return uploadS3(functionName, zip, null, null, account, cloudformation_bucket, '', aws_config)

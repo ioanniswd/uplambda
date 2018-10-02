@@ -23,7 +23,8 @@ module.exports = function() {
           info = {
             apiId: data.api.apiId,
             stageNames: data.api.stageNames,
-            method: data.api.method
+            method: data.api.method,
+            RootResourceId: data.api.RootResourceId
           };
         }
 
